@@ -1,4 +1,5 @@
-__pycache__/
+/strategies/__pycache__/
+/hyperopts/__pycache__/
 /backtest_results/
 /data/
 /hyperopt_results/
