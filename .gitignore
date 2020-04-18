@@ -5,3 +5,4 @@
 /plot/
 /utils/credentials.json
 /utils/token.pickle
+/hyperopt.lock
