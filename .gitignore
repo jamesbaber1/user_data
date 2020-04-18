@@ -1,0 +1,7 @@
+/backtest_results/
+/data/
+/hyperopt_results/
+/notebooks/
+/plot/
+/utils/credentials.json
+/utils/token.pickle
