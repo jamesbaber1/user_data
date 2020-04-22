@@ -7,4 +7,5 @@
 /plot/
 /utils/credentials.json
 /utils/token.pickle
+/utils/bots_config.json
 /hyperopt.lock

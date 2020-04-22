@@ -1,0 +1,25 @@
+{
+    "sheet_data": {
+        "spread_sheet_id": "",
+        "credentials_file": "",
+        "sheet": ""
+    },
+    "bots_data":[
+        {
+        "name": "",
+        "dry_run": true,
+        "full_reset": true,
+        "host_name": "",
+        "user_name": "",
+        "private_key": "",
+        "config": "",
+        "strategy": "",
+        "exchange_key": "",
+        "exchange_secret": "",
+        "telegram_chat_id": "",
+        "telegram_token": "",
+        "api_server_username": "",
+        "api_server_password": ""
+        }
+    ]
+}

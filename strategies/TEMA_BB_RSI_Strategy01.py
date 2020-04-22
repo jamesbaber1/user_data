@@ -36,14 +36,15 @@ class TEMA_BB_RSI_Strategy01(IStrategy):
     # Minimal ROI designed for the strategy.
     # This attribute will be overridden if the config file contains "minimal_roi".
     minimal_roi = {
-        "60": 0.01,
-        "30": 0.02,
-        "0": 0.04
-    }
+        "0": 0.21035,
+        "22": 0.08091,
+        "78": 0.01188,
+        "180": 0
+  }
 
     # Optimal stoploss designed for the strategy.
     # This attribute will be overridden if the config file contains "stoploss".
-    stoploss = -0.10
+    stoploss = -0.31122
 
     # Trailing stoploss
     trailing_stop = False
@@ -154,8 +155,8 @@ class TEMA_BB_RSI_Strategy01(IStrategy):
         """
         dataframe.loc[
             (
-                (qtpylib.crossed_above(dataframe['rsi'], 30)) &  # Signal: RSI crosses above 30
-                (dataframe['tema'] <= dataframe['bb_middleband1']) &  # Guard: tema below BB middle
+                (qtpylib.crossed_above(dataframe['rsi'], 25)) &  # Signal: RSI crosses above 30
+                (dataframe['tema'] <= dataframe['bb_lowerband2']) &  # Guard: tema below BB middle
                 (dataframe['tema'] > dataframe['tema'].shift(1)) &  # Guard: tema is raising
                 (dataframe['volume'] > 0)  # Make sure Volume is not 0
             ),
@@ -172,8 +173,8 @@ class TEMA_BB_RSI_Strategy01(IStrategy):
         """
         dataframe.loc[
             (
-                (qtpylib.crossed_above(dataframe['rsi'], 70)) &  # Signal: RSI crosses above 70
-                (dataframe['tema'] > dataframe['bb_middleband1']) &  # Guard: tema above BB middle
+                (qtpylib.crossed_above(dataframe['rsi'], 84)) &  # Signal: RSI crosses above 70
+                (dataframe['tema'] > dataframe['bb_middleband3']) &  # Guard: tema above BB middle
                 (dataframe['tema'] < dataframe['tema'].shift(1)) &  # Guard: tema is falling
                 (dataframe['volume'] > 0)  # Make sure Volume is not 0
             ),
