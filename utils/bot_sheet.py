@@ -93,16 +93,18 @@ if __name__ == "__main__":
     bot_sheet = BotSheet(data['sheet_data'], data['bots_data'])
 
     import time
-    # while True:
-    for bot_data in data['bots_data']:
-        bot = Bot(bot_data)
+    while True:
+        for bot_data in data['bots_data']:
+            bot = Bot(bot_data)
 
-        print(bot.name)
+            print(bot.name)
 
-        daily_data = bot.api_get('daily')
-        print(daily_data)
-        bot_sheet.update('daily', daily_data)
+            daily_data = bot.api_get('daily')
+            print(daily_data)
+            bot_sheet.update('daily', daily_data)
 
-        balance_data = bot.api_get('balance_total')
-        print(balance_data)
-        bot_sheet.update('balance', balance_data)
+            balance_data = bot.api_get('balance_total')
+            print(balance_data)
+            bot_sheet.update('balance', balance_data)
+
+        time.sleep(600)

@@ -36,15 +36,15 @@ class BB_RSI_Strategy01(IStrategy):
     # Minimal ROI designed for the strategy.
     # This attribute will be overridden if the config file contains "minimal_roi".
     minimal_roi = {
-        "0": 0.25962,
-        "24": 0.06224,
-        "58": 0.02972,
-        "90": 0
-    }
+        "0": 0.04671,
+        "10": 0.02258,
+        "43": 0.01023,
+        "150": 0
+      }
 
     # Optimal stoploss designed for the strategy.
     # This attribute will be overridden if the config file contains "stoploss".
-    stoploss = -0.2894
+    stoploss = -0.24183
 
     # Trailing stoploss
     trailing_stop = False
@@ -118,21 +118,15 @@ class BB_RSI_Strategy01(IStrategy):
         :param metadata: Additional information, like the currently traded pair
         :return: a Dataframe with all mandatory indicators for the strategies
         """
-
         # RSI
         dataframe['rsi'] = ta.RSI(dataframe)
 
-        # Bollinger Bands standard deviation 1
-        bollinger1 = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=1)
-        dataframe['bb_lowerband1'] = bollinger1['lower']
-        dataframe['bb_middleband1'] = bollinger1['mid']
-        dataframe['bb_upperband1'] = bollinger1['upper']
-
-        # Bollinger Bands standard deviation 4
-        bollinger4 = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=4)
-        dataframe['bb_lowerband4'] = bollinger4['lower']
-        dataframe['bb_middleband4'] = bollinger4['mid']
-        dataframe['bb_upperband4'] = bollinger4['upper']
+        for std in range(1, 5):
+            # Bollinger bands
+            bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=std)
+            dataframe[f'bb_lowerband{std}'] = bollinger['lower']
+            dataframe[f'bb_middleband{std}'] = bollinger['mid']
+            dataframe[f'bb_upperband{std}'] = bollinger['upper']
 
         return dataframe
 
@@ -145,8 +139,9 @@ class BB_RSI_Strategy01(IStrategy):
         """
         dataframe.loc[
             (
-                    # (dataframe['rsi'] > 6) &
-                    (dataframe['close'] < dataframe['bb_lowerband4'])
+                    (dataframe['rsi'] > 25) &
+                    (dataframe['close'] < dataframe['bb_lowerband4']) &
+                    (dataframe['volume'] > 0)
             ),
             'buy'] = 1
 
@@ -162,7 +157,8 @@ class BB_RSI_Strategy01(IStrategy):
         dataframe.loc[
             (
                 (dataframe['rsi'] > 77) &
-                (dataframe['close'] > dataframe['bb_upperband1'])
+                (dataframe['close'] > dataframe['bb_middleband4']) &
+                (dataframe['volume'] > 0)
             ),
             'sell'] = 1
 

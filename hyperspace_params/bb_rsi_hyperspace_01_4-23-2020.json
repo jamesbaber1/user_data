@@ -1,0 +1,20 @@
+{
+  "Buy": {
+    "buy-rsi-value": 40,
+    "buy-trigger": "buy_bb_middle4",
+    "rsi-enabled": false
+  },
+  "Sell": {
+    "sell-rsi-enabled": true,
+    "sell-rsi-value": 77,
+    "sell-shift-value": 1,
+    "sell-trigger": "sell_bb_lower4"
+  },
+  "ROI": {
+    "0": 0.04671,
+    "10": 0.02258,
+    "43": 0.01023,
+    "150": 0
+  },
+  "Stoploss": -0.24183
+}
