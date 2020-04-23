@@ -200,23 +200,28 @@ class Bot:
         )
         return json.loads(response.text)
 
-    def api_get(self, command):
+    def api_get(self, command, fail_count=0):
         bot_info = {}
 
-        response = requests.get(
-            f'http://{self.host_name}:8080/api/v1/{command.replace("_total", "")}',
-            auth=(self.api_server_username, self.api_server_password)
-        )
-        response_data = json.loads(response.text)
+        try:
+            if fail_count < 5:
+                response = requests.get(
+                    f'http://{self.host_name}:8080/api/v1/{command.replace("_total", "")}',
+                    auth=(self.api_server_username, self.api_server_password)
+                )
+                response_data = json.loads(response.text)
 
-        if command == 'daily':
-            bot_info = self.get_todays_profit(response_data, bot_info)
+                if command == 'daily':
+                    bot_info = self.get_todays_profit(response_data, bot_info)
 
-        if command == 'balance_total':
-            bot_info[self.name] = response_data['total']
+                if command == 'balance_total':
+                    bot_info[self.name] = response_data['total']
 
-        if command == 'balance':
-            bot_info = response_data
+                if command == 'balance':
+                    bot_info = response_data
+        except requests.exceptions.ConnectTimeout:
+            time.sleep(1)
+            self.api_get(command, fail_count+1)
 
         return bot_info
 
@@ -297,6 +302,7 @@ if __name__ == "__main__":
         # instantiate a new bot connection
         bot = Bot(bot_data)
 
-        # update the bot on a separate thread
-        update_bot_thread = threading.Thread(target=bot.update_bot)
-        update_bot_thread.start()
+        if bot_data['update']:
+            # update the bot on a separate thread
+            update_bot_thread = threading.Thread(target=bot.update_bot)
+            update_bot_thread.start()

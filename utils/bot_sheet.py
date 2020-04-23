@@ -108,3 +108,5 @@ if __name__ == "__main__":
             bot_sheet.update('balance', balance_data)
 
         time.sleep(600)
+
+# socket.timeout

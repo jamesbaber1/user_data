@@ -9,6 +9,7 @@
         "name": "",
         "dry_run": true,
         "full_reset": true,
+        "update": true,
         "host_name": "",
         "user_name": "",
         "private_key": "",
