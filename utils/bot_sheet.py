@@ -5,6 +5,7 @@ import string
 import os.path
 import datetime
 import logging
+import time
 
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -25,7 +26,8 @@ class BotSheet:
         self.service = self.authorize(sheet_data['credentials_file'])
         self.bots_data = bots_data
         self.sheet = sheet_data['sheet']
-        self.get_current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+        self.current_date = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+        self.date_rows = {}
 
     def authorize(self, credentials_file):
         credentials = None
@@ -64,49 +66,85 @@ class BotSheet:
         ).execute()
         return result.get('values', [])
 
-    def get_current_date_row(self):
-        time_column_values = self.get_values(f'{self.sheet}!A:A')
+    def set_current_date(self, date_column_values):
+        if self.current_date != date_column_values[-1]:
+            current_date_row = len(date_column_values) + 2
+            self.set_value(f'{self.sheet}!A{current_date_row}', self.current_date)
 
-        if self.get_current_date != time_column_values[-1][0]:
-            current_time_row = len(time_column_values) + 1
-            self.set_value(f'{self.sheet}!A{current_time_row}', self.get_current_date)
-            return current_time_row
+    def get_date_rows(self, dates):
+        date_column = self.get_values(f'{self.sheet}!A:A')
+        date_column_values = [row[0] for row in date_column][1:]
 
-        return len(time_column_values)
+        for date in dates:
+            if date not in date_column_values:
+                self.set_current_date(date_column_values)
 
-    def update(self, section, response_data):
+        for row, date in enumerate(date_column_values, 2):
+            self.date_rows[date] = row
+
+        return self.date_rows
+
+    def get_daily_profit(self, bot_instance):
+        daily_profit = {}
+        response_data = bot_instance.api_get('daily')
+        if response_data:
+            for date, bitcoin, _, _ in response_data:
+                bitcoin_amount = float(bitcoin.replace(' BTC', ''))
+
+                if bitcoin_amount > 0.0:
+                    daily_profit[date] = bitcoin_amount
+
+        return daily_profit
+
+    def get_total_balance(self, bot_instance):
+        total_balance = None
+        response_data = bot_instance.api_get('balance')
+        if response_data:
+            total_balance = float(response_data['total'])
+
+        return total_balance
+
+    def update_daily(self, bot_instance):
         # create a dictionary of the upper case numbers in the alphabet
         alphabet = dict(enumerate(string.ascii_uppercase, 1))
+        daily_profit = self.get_daily_profit(bot_instance)
+        date_rows = self.get_date_rows(daily_profit.keys())
 
-        for index, column_header in enumerate(self.get_values(self.sheet)[0], 1):
+        print(date_rows)
+        if daily_profit:
+            for index, column_header in enumerate(self.get_values(self.sheet)[0], 1):
+                for date, profit in daily_profit.items():
+                    if f'{bot_instance.name.lower()}{"daily"}' in column_header.lower().replace(' ', ''):
+                        field_range = f'{self.sheet}!{alphabet[index]}{date_rows[date]}'
+                        self.set_value(field_range, profit)
 
-            for bot_name, value in response_data.items():
-                if f'{bot_name.lower()}{section}' in column_header.lower().replace(' ', ''):
-                    field_range = f'{self.sheet}!{alphabet[index]}{self.get_current_date_row()}'
-                    self.set_value(field_range, float(value))
+    def update_balance(self, bot_instance):
+        # create a dictionary of the upper case numbers in the alphabet
+        alphabet = dict(enumerate(string.ascii_uppercase, 1))
+        balance = self.get_total_balance(bot_instance)
+
+        print(self.date_rows)
+
+        if balance:
+            for index, column_header in enumerate(self.get_values(self.sheet)[0], 1):
+                if f'{bot_instance.name.lower()}{"balance"}' in column_header.lower().replace(' ', ''):
+                    field_range = f'{self.sheet}!{alphabet[index]}{self.date_rows[self.current_date]}'
+                    self.set_value(field_range, balance)
 
 
 if __name__ == "__main__":
     with open('bots_config.json') as bots_config:
         data = json.load(bots_config)
 
-    bot_sheet = BotSheet(data['sheet_data'], data['bots_data'])
-
-    import time
     while True:
+        bot_sheet = BotSheet(data['sheet_data'], data['bots_data'])
         for bot_data in data['bots_data']:
-            bot = Bot(bot_data)
+            bot = Bot(bot_data, data['bot_alerts'])
 
             print(bot.name)
+            bot_sheet.update_daily(bot)
 
-            daily_data = bot.api_get('daily')
-            print(daily_data)
-            bot_sheet.update('daily', daily_data)
+            bot_sheet.update_balance(bot)
 
-            balance_data = bot.api_get('balance_total')
-            print(balance_data)
-            bot_sheet.update('balance', balance_data)
+        time.sleep(300)
 
-        time.sleep(600)
-
-# socket.timeout

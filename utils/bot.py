@@ -6,17 +6,20 @@ import paramiko
 import requests
 import rapidjson
 import datetime
+import telegram
 import threading
+from requests.exceptions import ConnectionError, Timeout, HTTPError, TooManyRedirects, ReadTimeout
 from binance.client import Client
 from binance.exceptions import BinanceAPIException
 
 logging.basicConfig(level=logging.DEBUG)
+logging.getLogger('telegram').setLevel(logging.WARNING)
 logging.getLogger('paramiko').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 
 class Bot:
-    def __init__(self, bot_data):
+    def __init__(self, bot_data, bot_alert_data):
         self.name = bot_data['name']
         self.dry_run = bot_data['dry_run']
         self.full_reset = bot_data['full_reset']
@@ -37,22 +40,17 @@ class Bot:
 
         self.get_current_date = datetime.datetime.now().strftime("%Y-%m-%d")
 
-        self.private_key = paramiko.RSAKey.from_private_key_file(bot_data['private_key'])
-        self.client = paramiko.SSHClient()
-        self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        if bot_data.get('private_key'):
+            self.private_key = paramiko.RSAKey.from_private_key_file(bot_data['private_key'])
+            self.client = paramiko.SSHClient()
+            self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         self.binance_client = Client(self.exchange_key, self.exchange_secret)
 
-    def get_todays_profit(self, days, bots_info):
-        # go through each days profit
-        for day in days:
-            # get the daily profit from the current date
-            if day[0] == self.get_current_date:
-                bots_info[self.name] = day[1].replace(' BTC', '')
+        self.alert_bot = telegram.Bot(token=bot_alert_data['telegram_token'])
+        self.alert_bot_telegram_chat_id = bot_alert_data['telegram_chat_id']
 
-        return bots_info
-
-    def run_command(self, command):
+    def bash_command(self, command):
         self.open_connection()
         bash_input, terminal_output, error = self.client.exec_command(command)
 
@@ -87,7 +85,7 @@ class Bot:
 
     def reboot_machine(self):
         logging.debug(f'rebooting the {self.name} machine...')
-        self.run_command('sudo reboot')
+        self.bash_command('sudo reboot')
 
     def check_connection(self, fail_count=1):
         try:
@@ -97,7 +95,7 @@ class Bot:
 
                 # try to run a command to test the connection
                 logging.debug(f'attempt {fail_count} to connect to the {self.name} machine...')
-                self.run_command('echo "connected"')
+                self.bash_command('echo "connected"')
             else:
                 logging.error(f'no ssh connection to the {self.name} machine could be made!')
 
@@ -120,12 +118,13 @@ class Bot:
             self.ping_bot(fail_count+1)
 
     def stop_bot(self, fail_count=0):
-        status = self.api_post('stop')['status']
-
-        if status != 'already stopped' and fail_count < 5:
-            logging.debug(f'{self.name} is {status}')
-            time.sleep(5)
-            self.stop_bot(fail_count + 1)
+        response = self.api_post('stop')
+        if response:
+            status = response['status']
+            if status != 'already stopped' and fail_count < 5:
+                logging.debug(f'{self.name} is {status}')
+                time.sleep(5)
+                self.stop_bot(fail_count + 1)
 
     def start_bot(self):
         # run the commands in a separate detached channel
@@ -143,7 +142,7 @@ class Bot:
     def install_strategy(self):
         # download the latest strategy file
         logging.debug(f'{self.name} downloading strategy file {self.strategy_url}')
-        self.run_command('\n'.join([
+        self.bash_command('\n'.join([
             f'cd freqtrade/user_data/strategies/',
             f'wget {self.strategy_url} -O {self.strategy_file}'
         ]))
@@ -170,7 +169,7 @@ class Bot:
         config['api_server']['username'] = self.api_server_username
         config['api_server']['password'] = self.api_server_password
 
-        self.run_command('\n'.join([
+        self.bash_command('\n'.join([
             f"config_data=$'{rapidjson.dumps(config, indent=2)}'",
             f'config_file=/home/ubuntu/freqtrade/{self.config_file}',
             f'echo "$config_data" > "$config_file"'
@@ -184,7 +183,7 @@ class Bot:
         else:
             remove_database_command = 'rm tradesv3.sqlite'
 
-        self.run_command('\n'.join([
+        self.bash_command('\n'.join([
             'cd freqtrade/',
             remove_database_command
         ]))
@@ -194,36 +193,28 @@ class Bot:
         return math.trunc(stepper * number) / stepper
 
     def api_post(self, command):
-        response = requests.post(
-            f'http://{self.host_name}:8080/api/v1/{command}',
-            auth=(self.api_server_username, self.api_server_password)
-        )
-        return json.loads(response.text)
-
-    def api_get(self, command, fail_count=0):
-        bot_info = {}
-
         try:
-            if fail_count < 5:
-                response = requests.get(
-                    f'http://{self.host_name}:8080/api/v1/{command.replace("_total", "")}',
-                    auth=(self.api_server_username, self.api_server_password)
-                )
-                response_data = json.loads(response.text)
+            response = requests.post(
+                f'http://{self.host_name}:8080/api/v1/{command}',
+                auth=(self.api_server_username, self.api_server_password),
+                timeout=5
+            )
+            return json.loads(response.text)
+        except Exception as error:
+            self.report_error(str(error))
+            return []
 
-                if command == 'daily':
-                    bot_info = self.get_todays_profit(response_data, bot_info)
-
-                if command == 'balance_total':
-                    bot_info[self.name] = response_data['total']
-
-                if command == 'balance':
-                    bot_info = response_data
-        except requests.exceptions.ConnectTimeout:
-            time.sleep(1)
-            self.api_get(command, fail_count+1)
-
-        return bot_info
+    def api_get(self, command):
+        try:
+            response = requests.get(
+                f'http://{self.host_name}:8080/api/v1/{command}',
+                auth=(self.api_server_username, self.api_server_password),
+                timeout=5
+            )
+            return json.loads(response.text)
+        except Exception as error:
+            self.report_error(str(error))
+            return []
 
     def sell_coin_dust(self, coins):
         # try to convert all the coin dust to BNB
@@ -266,6 +257,14 @@ class Bot:
 
         self.sell_coin_dust(list(coin_dust))
 
+    def report_error(self, message):
+        bot_error_message = f'{self.name} Error:\n{message}'
+
+        self.alert_bot.send_message(
+            chat_id=self.alert_bot_telegram_chat_id,
+            text=bot_error_message
+        )
+
     def update_bot(self):
         # check the connection
         self.check_connection()
@@ -275,7 +274,7 @@ class Bot:
 
         # if it is a full reset, delete the databases and sell all alt coins
         if self.full_reset:
-            self.force_sell_all_coins()
+            # self.force_sell_all_coins()
             self.remove_databases()
 
         # reboot the remote machine
@@ -300,7 +299,7 @@ if __name__ == "__main__":
 
     for bot_data in data['bots_data']:
         # instantiate a new bot connection
-        bot = Bot(bot_data)
+        bot = Bot(bot_data, data['bot_alerts'])
 
         if bot_data['update']:
             # update the bot on a separate thread
