@@ -1,4 +1,8 @@
 {
+    "bot_alerts": {
+        "telegram_chat_id": "",
+        "telegram_token": ""
+    },
     "sheet_data": {
         "spread_sheet_id": "",
         "credentials_file": "",
@@ -10,6 +14,7 @@
         "dry_run": true,
         "full_reset": true,
         "update": true,
+        "initial_state": "running",
         "host_name": "",
         "user_name": "",
         "private_key": "",
