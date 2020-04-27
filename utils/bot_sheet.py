@@ -91,7 +91,7 @@ class BotSheet:
             for date, bitcoin, _, _ in response_data:
                 bitcoin_amount = float(bitcoin.replace(' BTC', ''))
 
-                if bitcoin_amount > 0.0:
+                if round(bitcoin_amount, 8) != 0.0000000:
                     daily_profit[date] = bitcoin_amount
 
         return daily_profit
@@ -137,14 +137,17 @@ if __name__ == "__main__":
         data = json.load(bots_config)
 
     while True:
-        bot_sheet = BotSheet(data['sheet_data'], data['bots_data'])
-        for bot_data in data['bots_data']:
-            bot = Bot(bot_data, data['bot_alerts'])
+        try:
+            bot_sheet = BotSheet(data['sheet_data'], data['bots_data'])
+            for bot_data in data['bots_data']:
+                bot = Bot(bot_data, data['bot_alerts'])
 
-            print(bot.name)
-            bot_sheet.update_daily(bot)
+                print(bot.name)
+                bot_sheet.update_daily(bot)
 
-            bot_sheet.update_balance(bot)
+                bot_sheet.update_balance(bot)
+        except:
+            pass
 
         time.sleep(300)
 
