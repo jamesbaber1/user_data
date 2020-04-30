@@ -128,8 +128,10 @@ class BotSheet:
         if balance:
             for index, column_header in enumerate(self.get_values(self.sheet)[0], 1):
                 if f'{bot_instance.name.lower()}{"balance"}' in column_header.lower().replace(' ', ''):
-                    field_range = f'{self.sheet}!{alphabet[index]}{self.date_rows[self.current_date]}'
-                    self.set_value(field_range, balance)
+                    row = self.date_rows.get(self.current_date)
+                    if row:
+                        field_range = f'{self.sheet}!{alphabet[index]}{row}'
+                        self.set_value(field_range, balance)
 
 
 if __name__ == "__main__":
@@ -137,17 +139,14 @@ if __name__ == "__main__":
         data = json.load(bots_config)
 
     while True:
-        try:
-            bot_sheet = BotSheet(data['sheet_data'], data['bots_data'])
-            for bot_data in data['bots_data']:
-                bot = Bot(bot_data, data['bot_alerts'])
+        bot_sheet = BotSheet(data['sheet_data'], data['bots_data'])
+        for bot_data in data['bots_data']:
+            bot = Bot(bot_data, data['bot_alerts'])
 
-                print(bot.name)
-                bot_sheet.update_daily(bot)
+            print(bot.name)
+            bot_sheet.update_daily(bot)
 
-                bot_sheet.update_balance(bot)
-        except:
-            pass
+            bot_sheet.update_balance(bot)
 
         time.sleep(300)
 
