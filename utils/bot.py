@@ -227,35 +227,45 @@ class Bot:
                 if error.code != -5002:
                     logging.error(error.message)
 
-    def force_sell_all_coins(self):
-        logging.debug(f'resetting coin balances for {self.name} by selling all alt coins...')
-        account_balance = self.api_get('balance')
+    def force_sell_coin(self, coin, quantity, truncate=8):
+        try:
+            logging.debug(f'{self.name} trying to sell {self.truncate(quantity, truncate)} {coin}...')
 
-        coin_dust = set()
+            result = self.binance_client.order_market_sell(
+                symbol=f"{coin}BTC",
+                quantity=self.truncate(quantity, truncate)
+            )
+            if result:
+                logging.info(f'{self.name} successfully sold {self.truncate(quantity, truncate)} {coin}!')
+
+        # if the lot size is too small decrement the truncate value and try again
+        except BinanceAPIException as error:
+            if truncate == 0:
+                logging.warning(f'{self.name} could not sell {self.truncate(quantity, truncate)} {coin}!')
+
+            elif error.code == -1013:
+                self.force_sell_coin(coin, quantity, truncate-1)
+
+    def sort_balances(self, balances):
+        sorted_balances = []
+
+        for balance in balances:
+            sorted_balances.append([balance["currency"], balance['balance']])
+        sorted_balances.sort(key=lambda x: x[1], reverse=True)
+
+        return sorted_balances
+
+    def force_sell_all_coins(self):
+        # TODO Cancel all orders
+        # TODO sort by bitcoin value
+        logging.debug(f'resetting coin balances for {self.name} by selling all alt coins...')
+        wallet = self.api_get('balance')
+        balances = self.sort_balances(wallet['currencies'])
 
         # make a market orders to sell all coins except BTC and BNB
-        for coin in account_balance['currencies']:
-            if coin['currency'] not in ['BTC', 'BNB']:
-                try:
-                    logging.debug(f'{self.name} selling {self.truncate(coin["balance"], 8)} {coin["currency"]}...')
-
-                    self.binance_client.create_order(
-                        symbol=f"{coin['currency']}BTC",
-                        side=Client.SIDE_SELL,
-                        type=Client.ORDER_TYPE_MARKET,
-                        quantity=self.truncate(coin['balance'], 8)
-                    )
-
-                # if the lot size is too small sell the remaining coin dust
-                except BinanceAPIException as error:
-                    if error.code == -1013:
-                        coin_dust.add(coin['currency'])
-
-                remaining_amount = self.binance_client.get_asset_balance(coin["currency"])
-                if remaining_amount:
-                    logging.debug(f'{self.name} has {remaining_amount["free"]} {coin["currency"]} remaining...')
-
-        self.sell_coin_dust(list(coin_dust))
+        for balance in balances:
+            if balance[0] not in ['BTC', 'BNB']:
+                self.force_sell_coin(balance[0], balance[1])
 
     def report_error(self, message):
         bot_error_message = f'{self.name} Error:\n{message}'
