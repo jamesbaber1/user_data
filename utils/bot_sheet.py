@@ -87,12 +87,14 @@ class BotSheet:
     def get_daily_profit(self, bot_instance):
         daily_profit = {}
         response_data = bot_instance.api_get('daily')
-        if response_data:
-            for date, bitcoin, _, _ in response_data:
-                bitcoin_amount = float(bitcoin.replace(' BTC', ''))
+        config = bot_instance.api_get('show_config')
+        
+        if response_data and config:
+            for date, stake_currency, _, _ in response_data:
+                stake_currency_amount = float(stake_currency.replace(f' {config["stake_currency"]}', ''))
 
-                if round(bitcoin_amount, 8) != 0.0000000:
-                    daily_profit[date] = bitcoin_amount
+                if round(stake_currency_amount, 8) != 0.0000000:
+                    daily_profit[date] = stake_currency_amount
 
         return daily_profit
 
@@ -114,9 +116,11 @@ class BotSheet:
         if daily_profit:
             for index, column_header in enumerate(self.get_values(self.sheet)[0], 1):
                 for date, profit in daily_profit.items():
-                    if f'{bot_instance.name.lower()}{"daily"}' in column_header.lower().replace(' ', ''):
-                        field_range = f'{self.sheet}!{alphabet[index]}{date_rows[date]}'
-                        self.set_value(field_range, profit)
+                    row = date_rows.get(date)
+                    if row:
+                        if f'{bot_instance.name.lower()}{"daily"}' in column_header.lower().replace(' ', ''):
+                            field_range = f'{self.sheet}!{alphabet[index]}{row}'
+                            self.set_value(field_range, profit)
 
     def update_balance(self, bot_instance):
         # create a dictionary of the upper case numbers in the alphabet
@@ -135,18 +139,23 @@ class BotSheet:
 
 
 if __name__ == "__main__":
-    with open('bots_config.json') as bots_config:
-        data = json.load(bots_config)
 
     while True:
+        with open('bots_config.json') as bots_config:
+            data = json.load(bots_config)
+
         bot_sheet = BotSheet(data['sheet_data'], data['bots_data'])
         for bot_data in data['bots_data']:
             bot = Bot(bot_data, data['bot_alerts'])
 
-            print(bot.name)
-            bot_sheet.update_daily(bot)
+            try:
+                print(bot.name)
+                bot_sheet.update_daily(bot)
 
-            bot_sheet.update_balance(bot)
+                bot_sheet.update_balance(bot)
+
+            except Exception as error:
+                bot.report_error(str(error))
 
         time.sleep(300)
 
