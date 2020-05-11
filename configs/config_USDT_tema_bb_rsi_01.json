@@ -267,12 +267,10 @@
             "BNB/USDT",
         ]
     },
-    "pairlists": [{
-        "method": "VolumePairList",
-        "number_assets": 200,
-        "sort_key": "quoteVolume",
-        "refresh_period": 1800
-    }],
+    "pairlists": [
+    {
+        "method": "StaticPairList"}
+    ],
     "edge": {
         "enabled": false,
         "process_throttle_secs": 3600,
