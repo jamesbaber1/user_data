@@ -106,13 +106,20 @@ class BotSheet:
 
         return total_balance
 
+    def get_current_strategy(self, bot_instance):
+        total_balance = None
+        response_data = bot_instance.api_get('show_config')
+        if response_data:
+            total_balance = response_data['strategy']
+
+        return total_balance
+
     def update_daily(self, bot_instance):
         # create a dictionary of the upper case numbers in the alphabet
         alphabet = dict(enumerate(string.ascii_uppercase, 1))
         daily_profit = self.get_daily_profit(bot_instance)
         date_rows = self.get_date_rows(daily_profit.keys())
 
-        print(date_rows)
         if daily_profit:
             for index, column_header in enumerate(self.get_values(self.sheet)[0], 1):
                 for date, profit in daily_profit.items():
@@ -127,8 +134,6 @@ class BotSheet:
         alphabet = dict(enumerate(string.ascii_uppercase, 1))
         balance = self.get_total_balance(bot_instance)
 
-        print(self.date_rows)
-
         if balance:
             for index, column_header in enumerate(self.get_values(self.sheet)[0], 1):
                 if f'{bot_instance.name.lower()}{"balance"}' in column_header.lower().replace(' ', ''):
@@ -136,6 +141,21 @@ class BotSheet:
                     if row:
                         field_range = f'{self.sheet}!{alphabet[index]}{row}'
                         self.set_value(field_range, balance)
+
+    def update_strategy(self, bot_instance):
+        # create a dictionary of the upper case numbers in the alphabet
+        alphabet = dict(enumerate(string.ascii_uppercase, 1))
+        strategy = self.get_current_strategy(bot_instance)
+
+        if strategy:
+            for index, column_header in enumerate(self.get_values(self.sheet)[0], 1):
+                print(column_header)
+                if f'{bot_instance.name.lower()}{"strategy"}' in column_header.lower().replace(' ', ''):
+                    print(strategy)
+                    row = self.date_rows.get(self.current_date)
+                    if row:
+                        field_range = f'{self.sheet}!{alphabet[index]}{row}'
+                        self.set_value(field_range, strategy)
 
 
 if __name__ == "__main__":
@@ -153,6 +173,8 @@ if __name__ == "__main__":
                 bot_sheet.update_daily(bot)
 
                 bot_sheet.update_balance(bot)
+
+                bot_sheet.update_strategy(bot)
 
             except Exception as error:
                 bot.report_error(str(error))
