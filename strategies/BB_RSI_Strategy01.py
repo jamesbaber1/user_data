@@ -55,6 +55,8 @@ class BB_RSI_Strategy01(IStrategy):
     # Optimal ticker interval for the strategy.
     ticker_interval = '5m'
 
+    stake_amount = 300
+
     # Run "populate_indicators()" only for new candle.
     process_only_new_candles = False
 
