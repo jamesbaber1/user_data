@@ -39,7 +39,6 @@
             "rateLimit": 200
         },
         "pair_whitelist": [
-            "TRX/USDT",
             "NULS/USDT",
             "WAVES/USDT",
             "ETH/USDT",
