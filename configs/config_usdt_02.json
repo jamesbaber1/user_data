@@ -1,7 +1,7 @@
 {
-    "max_open_trades": 40,
+    "max_open_trades": -1,
     "stake_currency": "USDT",
-    "stake_amount": 1000,
+    "stake_amount": 500,
     "tradable_balance_ratio": 0.99,
     "fiat_display_currency": "USD",
     "ticker_interval": "5m",
@@ -112,7 +112,6 @@
             "XMR/USDT",
             "BTS/USDT",
             "NEO/USDT",
-            "HOT/USDT",
             "IOTA/USDT",
             "DENT/USDT",
             "COCOS/USDT",
@@ -138,13 +137,14 @@
             "VITE/USDT",
             "TUSD/USDT",
             "XZC/USDT",
-            "EUR/USDT",
             "MTL/USDT",
             "LINK/USDT",
             "ALGO/USDT",
             "COTI/USDT"
         ],
         "pair_blacklist": [
+            "HOT/USDT",
+            "EUR/USDT",
             "BNB/BTC",
             "BNB/BUSD",
             "BNB/ETH",
