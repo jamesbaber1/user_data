@@ -6,6 +6,7 @@
     "fiat_display_currency": "USD",
     "ticker_interval": "1d",
     "dry_run": true,
+    "dry_run_wallet": 5700,
     "unfilledtimeout": {
         "buy": 10,
         "sell": 30
