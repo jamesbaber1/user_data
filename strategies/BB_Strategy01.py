@@ -36,7 +36,7 @@ class BB_Strategy01(IStrategy):
     # Minimal ROI designed for the strategy.
     # This attribute will be overridden if the config file contains "minimal_roi".
     minimal_roi = {
-        "0": 0.11269,
+        "0": 1.1269,
         "269": 0.38181,
         "3269": 0.13458,
         "12998": 0
@@ -83,9 +83,10 @@ class BB_Strategy01(IStrategy):
     plot_config = {
         # Main plot indicators (Moving averages, ...)
         'main_plot': {
-            'bb_lowerband2': {'color': 'green'},
-            'bb_middleband2': {'color': 'red'},
+            'bb_lowerband1': {'color': 'green'},
+            'bb_middleband1': {'color': 'red'},
             'bb_upperband1': {'color': 'green'},
+            # 'ma': {'color': 'blue'}
         }
     }
 
@@ -120,6 +121,7 @@ class BB_Strategy01(IStrategy):
             dataframe[f'bb_middleband{std}'] = bollinger['mid']
             dataframe[f'bb_upperband{std}'] = bollinger['upper']
 
+        # dataframe['ma'] = ta.MA(dataframe, timeperiod=1, matype=0)
         return dataframe
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
@@ -131,8 +133,8 @@ class BB_Strategy01(IStrategy):
         """
         dataframe.loc[
             (
-                (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1']))
-                # (dataframe['close'] < dataframe['bb_middleband2'])
+                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1']))
+                (dataframe['close'] < dataframe['bb_lowerband1'])
             ),
             'buy'] = 1
 
@@ -147,8 +149,8 @@ class BB_Strategy01(IStrategy):
         """
         dataframe.loc[
             (
-                (qtpylib.crossed_above(dataframe['close'], dataframe['bb_upperband1']))
-                # (dataframe['close'] > dataframe['bb_middleband2'])
+                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_upperband1']))
+                (dataframe['close'] > dataframe['bb_upperband1'])
             ),
             'sell'] = 1
 
