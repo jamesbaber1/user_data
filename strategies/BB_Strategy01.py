@@ -36,15 +36,15 @@ class BB_Strategy01(IStrategy):
     # Minimal ROI designed for the strategy.
     # This attribute will be overridden if the config file contains "minimal_roi".
     minimal_roi = {
-        "0": 1.1269,
-        "269": 0.38181,
-        "3269": 0.13458,
-        "12998": 0
+        "0": 1.09767,
+        "3178": 0.31206,
+        "13523": 0.05282,
+        "38158": 0
     }
 
     # Optimal stoploss designed for the strategy.
     # This attribute will be overridden if the config file contains "stoploss".
-    stoploss = -0.32799
+    stoploss = -0.33985
 
     # Trailing stoploss
     trailing_stop = False
@@ -114,7 +114,7 @@ class BB_Strategy01(IStrategy):
         :param metadata: Additional information, like the currently traded pair
         :return: a Dataframe with all mandatory indicators for the strategies
         """
-        for std in range(1, 3):
+        for std in range(1, 5):
             # Bollinger bands
             bollinger = qtpylib.bollinger_bands(dataframe['close'], window=3, stds=std)
             dataframe[f'bb_lowerband{std}'] = bollinger['lower']
