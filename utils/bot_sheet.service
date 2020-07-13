@@ -1,0 +1,15 @@
+[Unit]
+
+Description=Bot Sheet
+
+[Service]
+TimeoutSec=infinity
+WorkingDirectory=/home/ubuntu/
+Type=forking
+ExecStart=/usr/bin/python3 /home/ubuntu/bot_sheet.py
+KillMode=process
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
