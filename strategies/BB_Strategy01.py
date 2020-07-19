@@ -69,7 +69,7 @@ class BB_Strategy01(IStrategy):
     # Optional order type mapping.
     order_types = {
         'buy': 'limit',
-        'sell': 'limit',
+        'sell': 'market',
         'stoploss': 'market',
         'stoploss_on_exchange': False
     }
