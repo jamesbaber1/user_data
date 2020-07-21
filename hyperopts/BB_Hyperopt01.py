@@ -51,9 +51,9 @@ class BB_Hyperopt01(IHyperOpt):
             conditions = []
 
             if 'buy-trigger' in params:
-                for std in range(1, 2):
+                for std in range(1, 5):
                     if params['buy-trigger'] == f'buy_bb_lower{std}':
-                        conditions.append(qtpylib.crossed_above(dataframe['close'], dataframe[f'bb_lowerband{std}']))
+                        conditions.append(dataframe['close'] < dataframe[f'bb_lowerband{std}'])
 
             if conditions:
                 dataframe.loc[
@@ -70,7 +70,7 @@ class BB_Hyperopt01(IHyperOpt):
         Define your Hyperopt space for searching buy strategy parameters.
         """
         bollinger_bands = []
-        for std in range(1, 2):
+        for std in range(1, 5):
             bollinger_bands.append(f'buy_bb_lower{std}')
         return [
             Categorical(bollinger_bands, name='buy-trigger')
@@ -89,13 +89,13 @@ class BB_Hyperopt01(IHyperOpt):
 
             # TRIGGERS
             if 'sell-trigger' in params:
-                for std in range(1, 2):
+                for std in range(1, 5):
                     if params['sell-trigger'] == f'sell_bb_lower{std}':
-                        conditions.append(qtpylib.crossed_above(dataframe['close'], dataframe[f'bb_lowerband{std}']))
+                        conditions.append(dataframe['close'] > dataframe[f'bb_lowerband{std}'])
                     if params['sell-trigger'] == f'sell_bb_middle{std}':
-                        conditions.append(qtpylib.crossed_above(dataframe['close'], dataframe[f'bb_middleband{std}']))
+                        conditions.append(dataframe['close'] > dataframe[f'bb_middleband{std}'])
                     if params['sell-trigger'] == f'sell_bb_upper{std}':
-                        conditions.append(qtpylib.crossed_above(dataframe['close'], dataframe[f'bb_upperband{std}']))
+                        conditions.append(dataframe['close'] > dataframe[f'bb_upperband{std}'])
 
             if conditions:
                 dataframe.loc[
@@ -113,7 +113,7 @@ class BB_Hyperopt01(IHyperOpt):
         """
         bollinger_bands = []
 
-        for std in range(1, 2):
+        for std in range(1, 5):
             bollinger_bands.append(f'sell_bb_lower{std}')
             bollinger_bands.append(f'sell_bb_middle{std}')
             bollinger_bands.append(f'sell_bb_upper{std}')

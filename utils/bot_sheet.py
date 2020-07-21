@@ -149,9 +149,7 @@ class BotSheet:
 
         if strategy:
             for index, column_header in enumerate(self.get_values(self.sheet)[0], 1):
-                print(column_header)
                 if f'{bot_instance.name.lower()}{"strategy"}' in column_header.lower().replace(' ', ''):
-                    print(strategy)
                     row = self.date_rows.get(self.current_date)
                     if row:
                         field_range = f'{self.sheet}!{alphabet[index]}{row}'

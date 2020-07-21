@@ -421,8 +421,8 @@ if __name__ == "__main__":
         bot = Bot(bot_data, data['bot_alerts'])
 
         if bot_data['update']:
-            # bot.force_sell_all_coins()
+            bot.force_sell_all_coins()
             # bot.convert_coin_dust()
             # update the bot on a separate thread
-            update_bot_thread = threading.Thread(target=bot.update_bot)
-            update_bot_thread.start()
+            # update_bot_thread = threading.Thread(target=bot.update_bot)
+            # update_bot_thread.start()

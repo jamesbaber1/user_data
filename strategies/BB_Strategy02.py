@@ -13,7 +13,7 @@ import talib.abstract as ta
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 
 
-class BB_Strategy01(IStrategy):
+class BB_Strategy02(IStrategy):
     """
     This is a strategy template to get you started.
     More information in https://github.com/freqtrade/freqtrade/blob/develop/docs/bot-optimization.md
@@ -36,15 +36,15 @@ class BB_Strategy01(IStrategy):
     # Minimal ROI designed for the strategy.
     # This attribute will be overridden if the config file contains "minimal_roi".
     minimal_roi = {
-        "0": 1.09767,
-        "3178": 0.31206,
-        "13523": 0.05282,
-        "38158": 0
+        "0": 0.0794,
+        "12": 0.05243,
+        "20": 0.0217,
+        "42": 0
     }
 
     # Optimal stoploss designed for the strategy.
     # This attribute will be overridden if the config file contains "stoploss".
-    stoploss = -0.33985
+    stoploss = -0.03037
 
     # Trailing stoploss
     trailing_stop = False
@@ -53,7 +53,7 @@ class BB_Strategy01(IStrategy):
     # trailing_stop_positive_offset = 0.0  # Disabled / not configured
 
     # Optimal ticker interval for the strategy.
-    ticker_interval = '1d'
+    ticker_interval = '3m'
 
     # Run "populate_indicators()" only for new candle.
     process_only_new_candles = False
@@ -83,10 +83,9 @@ class BB_Strategy01(IStrategy):
     plot_config = {
         # Main plot indicators (Moving averages, ...)
         'main_plot': {
-            'bb_lowerband1': {'color': 'green'},
-            'bb_middleband1': {'color': 'red'},
+            'bb_lowerband2': {'color': 'green'},
+            'bb_middleband2': {'color': 'red'},
             'bb_upperband1': {'color': 'green'},
-            # 'ma': {'color': 'blue'}
         }
     }
 
@@ -116,12 +115,11 @@ class BB_Strategy01(IStrategy):
         """
         for std in range(1, 5):
             # Bollinger bands
-            bollinger = qtpylib.bollinger_bands(dataframe['close'], window=3, stds=std)
+            bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=std)
             dataframe[f'bb_lowerband{std}'] = bollinger['lower']
             dataframe[f'bb_middleband{std}'] = bollinger['mid']
             dataframe[f'bb_upperband{std}'] = bollinger['upper']
 
-        # dataframe['ma'] = ta.MA(dataframe, timeperiod=1, matype=0)
         return dataframe
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
@@ -133,7 +131,7 @@ class BB_Strategy01(IStrategy):
         """
         dataframe.loc[
             (
-                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1']))
+                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband3']))
                 (dataframe['close'] < dataframe['bb_lowerband1'])
             ),
             'buy'] = 1
@@ -149,7 +147,7 @@ class BB_Strategy01(IStrategy):
         """
         dataframe.loc[
             (
-                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_upperband1']))
+                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_upperband4']))
                 (dataframe['close'] > dataframe['bb_upperband1'])
             ),
             'sell'] = 1
