@@ -1,6 +1,7 @@
 import time
 import json
 import math
+import ccxt
 import logging
 import paramiko
 import requests
@@ -17,6 +18,52 @@ logging.getLogger('telegram').setLevel(logging.WARNING)
 logging.getLogger('paramiko').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
 
+class ClientOveride(Client):
+    def _request_override(self, method, uri, signed, assets, force_params=False):
+        kwargs = {}
+        kwargs['data'] = {}
+
+        # set default requests timeout
+        kwargs['timeout'] = 10
+
+        # add our global requests params
+        if self._requests_params:
+            kwargs.update(self._requests_params)
+
+        data = kwargs.get('data', None)
+        if data and isinstance(data, dict):
+            kwargs['data'] = data
+
+            # find any requests params passed and apply them
+            if 'requests_params' in kwargs['data']:
+                # merge requests params into kwargs
+                kwargs.update(kwargs['data']['requests_params'])
+                del(kwargs['data']['requests_params'])
+
+        if signed:
+            # generate signature
+            kwargs['data']['timestamp'] = int(time.time() * 1000)
+            kwargs['data']['signature'] = self._generate_signature(kwargs['data'])
+
+        # if get request assign data array to params value for requests lib
+        kwargs['params'] = '&'.join('%s=%s' % ('asset', asset) for asset in assets)
+        print(kwargs['params'])
+
+        self.response = getattr(self.session, method)(uri, **kwargs)
+        import pprint
+        pprint.pprint(self.response)
+        print('-------------------------')
+        pprint.pprint(self._handle_response())
+        return self._handle_response()
+
+    def _request_margin_api_override(self, method, path, assets, signed=False):
+        uri = self._create_margin_api_uri(path)
+
+        return self._request_override(method, uri, signed, assets)
+
+    def transfer_dust_override(self, assets):
+        return self._request_margin_api_override('post', 'asset/dust', assets, True)
+
 
 class Bot:
     def __init__(self, bot_data, bot_alert_data):
@@ -28,6 +75,7 @@ class Bot:
         self.user_name = bot_data['user_name']
         self.config_url = bot_data['config']
         self.config_file = bot_data["config"].rsplit("/", 1)[-1]
+        self.config_values = self.get_config_values()
         self.strategy_url = bot_data['strategy']
         self.strategy_file = bot_data['strategy'].rsplit("/", 1)[-1]
         self.strategy_class = self.strategy_file.replace('.py', '')
@@ -45,10 +93,20 @@ class Bot:
             self.client = paramiko.SSHClient()
             self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        self.binance_client = Client(self.exchange_key, self.exchange_secret)
+        self.binance_client = ClientOveride(self.exchange_key, self.exchange_secret)
 
         self.alert_bot = telegram.Bot(token=bot_alert_data['telegram_token'])
         self.alert_bot_telegram_chat_id = bot_alert_data['telegram_chat_id']
+
+    def get_config_values(self):
+        # get the config text from the config url
+        response = requests.get(self.config_url)
+
+        # load in the config as json
+        return rapidjson.loads(
+            response.text,
+            parse_mode=rapidjson.PM_COMMENTS | rapidjson.PM_TRAILING_COMMAS
+        )
 
     def bash_command(self, command):
         self.open_connection()
@@ -110,9 +168,10 @@ class Bot:
                 # wait 1 second before pinging the server
                 time.sleep(1)
                 response = requests.get(f'http://{self.host_name}:8080/api/v1/ping')
-                return json.loads(response.text)
+                return response
             else:
                 logging.error(f'failed to ping {self.name} api server! {self.name} is not running!')
+                return None
 
         except requests.exceptions.ConnectionError:
             self.ping_bot(fail_count+1)
@@ -137,7 +196,7 @@ class Bot:
 
         # ping the api to see if the bot is running
         self.ping_bot()
-        logging.info(f'successfully started {self.name}!')
+        logging.info(f'{self.name} is running!')
 
     def install_strategy(self):
         # download the latest strategy file
@@ -148,29 +207,20 @@ class Bot:
         ]))
 
     def install_config(self):
-        # get the config text from the config url
-        logging.debug(f'{self.name} downloading config file {self.config_url}')
-        response = requests.get(self.config_url)
-
-        # load in the text as json
-        config = rapidjson.loads(
-            response.text,
-            parse_mode=rapidjson.PM_COMMENTS | rapidjson.PM_TRAILING_COMMAS
-        )
-
         # override these config key values using the bot data
         logging.debug(f'{self.name} populating bot_data into {self.config_file}')
-        config['dry_run'] = self.dry_run
-        config['initial_state'] = self.initial_state
-        config['exchange']['key'] = self.exchange_key
-        config['exchange']['secret'] = self.exchange_secret
-        config['telegram']['chat_id'] = self.telegram_chat_id
-        config['telegram']['token'] = self.telegram_token
-        config['api_server']['username'] = self.api_server_username
-        config['api_server']['password'] = self.api_server_password
+        self.config_values['dry_run'] = self.dry_run
+        self.config_values['initial_state'] = self.initial_state
+        self.config_values['exchange']['key'] = self.exchange_key
+        self.config_values['exchange']['secret'] = self.exchange_secret
+        self.config_values['telegram']['chat_id'] = self.telegram_chat_id
+        self.config_values['telegram']['token'] = self.telegram_token
+        self.config_values['api_server']['username'] = self.api_server_username
+        self.config_values['api_server']['password'] = self.api_server_password
 
+        logging.debug(f'{self.name} downloading config file {self.config_url}')
         self.bash_command('\n'.join([
-            f"config_data=$'{rapidjson.dumps(config, indent=2)}'",
+            f"config_data=$'{rapidjson.dumps(self.config_values, indent=2)}'",
             f'config_file=/home/ubuntu/freqtrade/{self.config_file}',
             f'echo "$config_data" > "$config_file"'
         ]))
@@ -216,23 +266,43 @@ class Bot:
             self.report_error(str(error))
             return []
 
-    def sell_coin_dust(self, coins):
+    def convert_coin_dust(self):
         # try to convert all the coin dust to BNB
-        logging.debug(f'{self.name} is converting all coin dust to BNB...')
-        for coin in coins:
-            try:
-                self.binance_client.transfer_dust(asset=coin)
+        logging.debug(f"{self.name} is cleaning up coin dust...")
+        result = self.binance_client.get_dust_log()
+        logs = result['results']['rows'][0]['logs']
 
-            except BinanceAPIException as error:
-                if error.code != -5002:
-                    logging.error(error.message)
+        dust_coins = []
+        for log in logs:
+            logging.debug(f"{self.name} is converting {log['fromAsset']} to BNB...")
+            dust_coins.append(log['fromAsset'])
+
+        print('------------------')
+        print(dust_coins)
+        print('------------------')
+
+        self.binance_client.transfer_dust_override(assets=dust_coins)
+
+        # for coin in coins:
+        #     try:
+        #         self.binance_client.transfer_dust(asset=coin)
+        #
+        #     except BinanceAPIException as error:
+        #         if error.code != -5002:
+        #             logging.error(error.message)
 
     def force_sell_coin(self, coin, quantity, truncate=8):
         try:
             logging.debug(f'{self.name} trying to sell {self.truncate(quantity, truncate)} {coin}...')
 
-            result = self.binance_client.order_market_sell(
-                symbol=f"{coin}BTC",
+            # result = self.binance_client.order_market_sell(
+            #     symbol=f"{coin}{self.config_values['stake_currency']}",
+            #     quantity=self.truncate(quantity, truncate)
+            # )
+            result = self.binance_client.create_test_order(
+                symbol=f"{coin}{self.config_values['stake_currency']}",
+                type='MARKET',
+                side='SELL',
                 quantity=self.truncate(quantity, truncate)
             )
             if result:
@@ -255,17 +325,55 @@ class Bot:
 
         return sorted_balances
 
+    def cancel_all_orders(self):
+        orders = self.binance_client.get_open_orders()
+        for order in orders:
+            logging.debug(f"{self.name} canceling {order['side']} order for {order['symbol']}...")
+            self.binance_client.cancel_order(
+                symbol=order['symbol'],
+                orderId=order['orderId']
+            )
+
     def force_sell_all_coins(self):
         # TODO Cancel all orders
         # TODO sort by bitcoin value
         logging.debug(f'resetting coin balances for {self.name} by selling all alt coins...')
-        wallet = self.api_get('balance')
-        balances = self.sort_balances(wallet['currencies'])
+        exchange_id = 'binance'
+        exchange_class = getattr(ccxt, exchange_id)
+        exchange = exchange_class({
+            'apiKey': self.exchange_key,
+            'secret': self.exchange_secret,
+            'timeout': 30000,
+            'enableRateLimit': True,
+        })
 
-        # make a market orders to sell all coins except BTC and BNB
-        for balance in balances:
-            if balance[0] not in ['BTC', 'BNB']:
-                self.force_sell_coin(balance[0], balance[1])
+        DUST = 0.001  # BTC
+
+        prices = exchange.v3GetTickerPrice()
+        # account = exchange.sapiGetAccountSnapshot(params={'type': 'SPOT'})['snapshotVos'][0]['data']
+        account = exchange.fetchBalance(params={'type': 'SPOT'})['info']
+
+        # import pprint
+        # pprint.pprint(account)
+
+        prices = {p['symbol']: float(p['price']) for p in prices}
+        balances = {b['asset']: float(b['free']) for b in account['balances']}
+
+        dust_coins = []
+        for ticker, amount in balances.items():
+            price = prices.get(f'{ticker}BTC')
+            if price:
+                value = amount * price
+
+                # if value <= DUST and value > 0:
+                #     dust_coins.append(ticker)
+
+                if value > DUST:
+                    try:
+                        exchange.create_market_sell_order(symbol=f'{ticker}/BTC', amount=round(amount, 4))
+                        print(f"Selling {round(amount, 4)} of {ticker}/BTC")
+                    except Exception as e:
+                        print(e)
 
     def report_error(self, message):
         bot_error_message = f'{self.name} Error:\n{message}'
@@ -284,6 +392,7 @@ class Bot:
 
         # if it is a full reset, delete the databases and sell all alt coins
         if self.full_reset:
+            self.cancel_all_orders()
             # self.force_sell_all_coins()
             self.remove_databases()
 
@@ -312,6 +421,8 @@ if __name__ == "__main__":
         bot = Bot(bot_data, data['bot_alerts'])
 
         if bot_data['update']:
+            # bot.force_sell_all_coins()
+            # bot.convert_coin_dust()
             # update the bot on a separate thread
             update_bot_thread = threading.Thread(target=bot.update_bot)
             update_bot_thread.start()
