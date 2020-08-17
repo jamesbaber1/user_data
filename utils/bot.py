@@ -11,58 +11,13 @@ import telegram
 import threading
 from requests.exceptions import ConnectionError, Timeout, HTTPError, TooManyRedirects, ReadTimeout
 from binance.client import Client
-from binance.exceptions import BinanceAPIException
+from ccxt import ExchangeError
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('telegram').setLevel(logging.WARNING)
 logging.getLogger('paramiko').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
-
-class ClientOveride(Client):
-    def _request_override(self, method, uri, signed, assets, force_params=False):
-        kwargs = {}
-        kwargs['data'] = {}
-
-        # set default requests timeout
-        kwargs['timeout'] = 10
-
-        # add our global requests params
-        if self._requests_params:
-            kwargs.update(self._requests_params)
-
-        data = kwargs.get('data', None)
-        if data and isinstance(data, dict):
-            kwargs['data'] = data
-
-            # find any requests params passed and apply them
-            if 'requests_params' in kwargs['data']:
-                # merge requests params into kwargs
-                kwargs.update(kwargs['data']['requests_params'])
-                del(kwargs['data']['requests_params'])
-
-        if signed:
-            # generate signature
-            kwargs['data']['timestamp'] = int(time.time() * 1000)
-            kwargs['data']['signature'] = self._generate_signature(kwargs['data'])
-
-        # if get request assign data array to params value for requests lib
-        kwargs['params'] = '&'.join('%s=%s' % ('asset', asset) for asset in assets)
-        print(kwargs['params'])
-
-        self.response = getattr(self.session, method)(uri, **kwargs)
-        import pprint
-        pprint.pprint(self.response)
-        print('-------------------------')
-        pprint.pprint(self._handle_response())
-        return self._handle_response()
-
-    def _request_margin_api_override(self, method, path, assets, signed=False):
-        uri = self._create_margin_api_uri(path)
-
-        return self._request_override(method, uri, signed, assets)
-
-    def transfer_dust_override(self, assets):
-        return self._request_margin_api_override('post', 'asset/dust', assets, True)
+logging.getLogger('ccxt').setLevel(logging.WARNING)
 
 
 class Bot:
@@ -93,7 +48,15 @@ class Bot:
             self.client = paramiko.SSHClient()
             self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        self.binance_client = ClientOveride(self.exchange_key, self.exchange_secret)
+        exchange_class = getattr(ccxt, 'binance')
+        self.exchange = exchange_class({
+            'apiKey': self.exchange_key,
+            'secret': self.exchange_secret,
+            'timeout': 30000,
+            'enableRateLimit': True,
+        })
+
+        self.binance_client = Client(self.exchange_key, self.exchange_secret)
 
         self.alert_bot = telegram.Bot(token=bot_alert_data['telegram_token'])
         self.alert_bot_telegram_chat_id = bot_alert_data['telegram_chat_id']
@@ -267,54 +230,23 @@ class Bot:
             return []
 
     def convert_coin_dust(self):
-        # try to convert all the coin dust to BNB
         logging.debug(f"{self.name} is cleaning up coin dust...")
-        result = self.binance_client.get_dust_log()
-        logs = result['results']['rows'][0]['logs']
 
-        dust_coins = []
-        for log in logs:
-            logging.debug(f"{self.name} is converting {log['fromAsset']} to BNB...")
-            dust_coins.append(log['fromAsset'])
+        # get the coins that are below the dust amount
+        dust_coins = self.get_coin_balances(only_dust=True)
 
-        print('------------------')
-        print(dust_coins)
-        print('------------------')
+        # remove BNB from the list of coins to be converted
+        dust_coins.pop('BNB')
 
-        self.binance_client.transfer_dust_override(assets=dust_coins)
-
-        # for coin in coins:
-        #     try:
-        #         self.binance_client.transfer_dust(asset=coin)
-        #
-        #     except BinanceAPIException as error:
-        #         if error.code != -5002:
-        #             logging.error(error.message)
-
-    def force_sell_coin(self, coin, quantity, truncate=8):
+        # convert all the dust coins to BNB
         try:
-            logging.debug(f'{self.name} trying to sell {self.truncate(quantity, truncate)} {coin}...')
-
-            # result = self.binance_client.order_market_sell(
-            #     symbol=f"{coin}{self.config_values['stake_currency']}",
-            #     quantity=self.truncate(quantity, truncate)
-            # )
-            result = self.binance_client.create_test_order(
-                symbol=f"{coin}{self.config_values['stake_currency']}",
-                type='MARKET',
-                side='SELL',
-                quantity=self.truncate(quantity, truncate)
+            self.exchange.sapiPostAssetDust(
+                params={
+                    'asset': list(dust_coins.keys())
+                }
             )
-            if result:
-                logging.info(f'{self.name} successfully sold {self.truncate(quantity, truncate)} {coin}!')
-
-        # if the lot size is too small decrement the truncate value and try again
-        except BinanceAPIException as error:
-            if truncate == 0:
-                logging.warning(f'{self.name} could not sell {self.truncate(quantity, truncate)} {coin}!')
-
-            elif error.code == -1013:
-                self.force_sell_coin(coin, quantity, truncate-1)
+        except Exception as error:
+            logging.error(error)
 
     def sort_balances(self, balances):
         sorted_balances = []
@@ -334,46 +266,70 @@ class Bot:
                 orderId=order['orderId']
             )
 
-    def force_sell_all_coins(self):
-        # TODO Cancel all orders
-        # TODO sort by bitcoin value
-        logging.debug(f'resetting coin balances for {self.name} by selling all alt coins...')
-        exchange_id = 'binance'
-        exchange_class = getattr(ccxt, exchange_id)
-        exchange = exchange_class({
-            'apiKey': self.exchange_key,
-            'secret': self.exchange_secret,
-            'timeout': 30000,
-            'enableRateLimit': True,
-        })
+    def get_prices(self):
+        prices = self.exchange.v3GetTickerPrice()
+        return {p['symbol']: float(p['price']) for p in prices}
 
-        DUST = 0.001  # BTC
+    def get_balances(self):
+        account = self.exchange.fetchBalance(params={'type': 'SPOT'})['info']
+        return {b['asset']: float(b['free']) for b in account['balances']}
 
-        prices = exchange.v3GetTickerPrice()
-        # account = exchange.sapiGetAccountSnapshot(params={'type': 'SPOT'})['snapshotVos'][0]['data']
-        account = exchange.fetchBalance(params={'type': 'SPOT'})['info']
+    def get_coin_balances(self, only_dust=False, only_non_dust=False):
+        logging.debug(f'resetting coin balances for {self.name} by converting all coins to BTC...')
+        dust_coins = {}
+        non_dust_coins = {}
 
-        # import pprint
-        # pprint.pprint(account)
+        # dust is anything less than 0.001 BTC
+        dust = 0.001
 
-        prices = {p['symbol']: float(p['price']) for p in prices}
-        balances = {b['asset']: float(b['free']) for b in account['balances']}
+        prices = self.get_prices()
+        balances = self.get_balances()
 
-        dust_coins = []
         for ticker, amount in balances.items():
             price = prices.get(f'{ticker}BTC')
             if price:
                 value = amount * price
 
-                # if value <= DUST and value > 0:
-                #     dust_coins.append(ticker)
+                if value <= dust and value > 0:
+                    dust_coins[ticker] = amount
 
-                if value > DUST:
-                    try:
-                        exchange.create_market_sell_order(symbol=f'{ticker}/BTC', amount=round(amount, 4))
-                        print(f"Selling {round(amount, 4)} of {ticker}/BTC")
-                    except Exception as e:
-                        print(e)
+                if value > dust:
+                    non_dust_coins[ticker] = amount
+
+        if only_dust:
+            return dust_coins
+
+        if only_non_dust:
+            return non_dust_coins
+
+        else:
+            return dust_coins.update(non_dust_coins)
+
+    def convert_all_coins_to_stake_coin(self):
+        # TODO Cancel all orders
+        # TODO sort by bitcoin value
+        logging.debug(f'resetting coin balances for {self.name} by converting all coins to BTC...')
+        stake_currency = self.config_values['stake_currency']
+        #
+        # convert all non dust coins to BTC
+        non_dust_coins = self.get_coin_balances(only_non_dust=True)
+        for ticker, amount in non_dust_coins.items():
+            try:
+                self.exchange.create_market_sell_order(symbol=f'{ticker}/BTC', amount=round(amount, 4))
+                print(f"Selling {round(amount, 4)} of {ticker}/BTC")
+            except Exception as error:
+                logging.error(error)
+
+        # convert all BTC to the stake coin
+        if stake_currency != 'BTC':
+            balances = self.get_balances()
+
+            amount = balances['BTC']
+            try:
+                self.exchange.create_market_sell_order(symbol=f'BTC/{stake_currency}', amount=round(amount, 4))
+                print(f"Selling {round(amount, 4)} of BTC/{stake_currency}")
+            except Exception as error:
+                logging.error(error)
 
     def report_error(self, message):
         bot_error_message = f'{self.name} Error:\n{message}'
@@ -393,7 +349,8 @@ class Bot:
         # if it is a full reset, delete the databases and sell all alt coins
         if self.full_reset:
             self.cancel_all_orders()
-            # self.force_sell_all_coins()
+            self.convert_all_coins_to_stake_coin()
+            self.convert_coin_dust()
             self.remove_databases()
 
         # reboot the remote machine
@@ -421,8 +378,6 @@ if __name__ == "__main__":
         bot = Bot(bot_data, data['bot_alerts'])
 
         if bot_data['update']:
-            # bot.force_sell_all_coins()
-            # bot.convert_coin_dust()
             # update the bot on a separate thread
             update_bot_thread = threading.Thread(target=bot.update_bot)
             update_bot_thread.start()
