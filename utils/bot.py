@@ -348,9 +348,9 @@ class Bot:
 
         # if it is a full reset, delete the databases and sell all alt coins
         if self.full_reset:
-            self.cancel_all_orders()
-            self.convert_all_coins_to_stake_coin()
-            self.convert_coin_dust()
+            # self.cancel_all_orders()
+            # self.convert_all_coins_to_stake_coin()
+            # self.convert_coin_dust()
             self.remove_databases()
 
         # reboot the remote machine

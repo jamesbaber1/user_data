@@ -8,3 +8,4 @@ python-binance~=0.7.5
 python-telegram-bot~=12.4.2
 Pyside2~=5.14.2.1
 boto3~=1.13.21
+ccxt~=1.33.19
