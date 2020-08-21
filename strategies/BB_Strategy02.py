@@ -36,15 +36,15 @@ class BB_Strategy02(IStrategy):
     # Minimal ROI designed for the strategy.
     # This attribute will be overridden if the config file contains "minimal_roi".
     minimal_roi = {
-        "0": 0.0794,
-        "12": 0.05243,
-        "20": 0.0217,
-        "42": 0
+        "0": 1.09767,
+        "3178": 0.31206,
+        "13523": 0.05282,
+        "38158": 0
     }
 
     # Optimal stoploss designed for the strategy.
     # This attribute will be overridden if the config file contains "stoploss".
-    stoploss = -0.03037
+    stoploss = -0.33985
 
     # Trailing stoploss
     trailing_stop = False
@@ -53,7 +53,7 @@ class BB_Strategy02(IStrategy):
     # trailing_stop_positive_offset = 0.0  # Disabled / not configured
 
     # Optimal ticker interval for the strategy.
-    ticker_interval = '3m'
+    ticker_interval = '1m'
 
     # Run "populate_indicators()" only for new candle.
     process_only_new_candles = False
@@ -83,24 +83,21 @@ class BB_Strategy02(IStrategy):
     plot_config = {
         # Main plot indicators (Moving averages, ...)
         'main_plot': {
-            'bb_lowerband2': {'color': 'green'},
-            'bb_middleband2': {'color': 'red'},
+            'bb_lowerband1': {'color': 'green'},
+            'bb_middleband1': {'color': 'red'},
             'bb_upperband1': {'color': 'green'},
+            # 'ma': {'color': 'blue'}
         }
     }
 
     def informative_pairs(self):
-        """
-        Define additional, informative pair/interval combinations to be cached from the exchange.
-        These pair/interval combinations are non-tradeable, unless they are part
-        of the whitelist as well.
-        For more information, please consult the documentation
-        :return: List of tuples in the format (pair, interval)
-            Sample: return [("ETH/USDT", "5m"),
-                            ("BTC/USDT", "15m"),
-                            ]
-        """
-        return []
+
+        # get access to all pairs available in whitelist.
+        pairs = self.dp.current_whitelist()
+        # Assign tf to each pair so they can be downloaded and cached for strategy.
+        informative_pairs = [(pair, '1d') for pair in pairs]
+
+        return informative_pairs
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         """
@@ -113,9 +110,16 @@ class BB_Strategy02(IStrategy):
         :param metadata: Additional information, like the currently traded pair
         :return: a Dataframe with all mandatory indicators for the strategies
         """
+        if not self.dp:
+            # Don't do anything if DataProvider is not available.
+            return dataframe
+
+        # Get the informative pair
+        informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe='1d')
+
         for std in range(1, 5):
             # Bollinger bands
-            bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=std)
+            bollinger = qtpylib.bollinger_bands(informative['close'], window=3, stds=std)
             dataframe[f'bb_lowerband{std}'] = bollinger['lower']
             dataframe[f'bb_middleband{std}'] = bollinger['mid']
             dataframe[f'bb_upperband{std}'] = bollinger['upper']
@@ -131,7 +135,7 @@ class BB_Strategy02(IStrategy):
         """
         dataframe.loc[
             (
-                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband3']))
+                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1']))
                 (dataframe['close'] < dataframe['bb_lowerband1'])
             ),
             'buy'] = 1
@@ -147,7 +151,7 @@ class BB_Strategy02(IStrategy):
         """
         dataframe.loc[
             (
-                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_upperband4']))
+                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_upperband1']))
                 (dataframe['close'] > dataframe['bb_upperband1'])
             ),
             'sell'] = 1

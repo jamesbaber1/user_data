@@ -370,7 +370,7 @@ class Bot:
 
 
 if __name__ == "__main__":
-    with open('bots_config.json') as bots_config:
+    with open('../bots_config.json') as bots_config:
         data = json.load(bots_config)
 
     for bot_data in data['bots_data']:
