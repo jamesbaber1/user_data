@@ -11,7 +11,7 @@ freqtrade_folder = os.path.normpath(os.path.join(
 ))
 
 # stop any existing docker containers
-os.system('powershell -Command "docker stop $(docker ps -aq)"')
+os.system('powershell -Command "If(docker ps -aq){docker stop $(docker ps -aq)}"')
 
 # remove any existing docker containers
 os.system('powershell -Command "docker rm $(docker ps -aq)"')

@@ -135,8 +135,8 @@ class BB_Strategy02(IStrategy):
         """
         dataframe.loc[
             (
-                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1']))
-                (dataframe['close'] < dataframe['bb_lowerband1'])
+                (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1']))
+                # (dataframe['close'] < dataframe['bb_lowerband1'])
             ),
             'buy'] = 1
 

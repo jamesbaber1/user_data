@@ -2,6 +2,8 @@ import sys
 import os
 import rapidjson
 import shutil
+import subprocess
+from subprocess import CalledProcessError
 
 
 def get_full_path(project_path):
@@ -42,7 +44,7 @@ def get_bot_data(bot_config):
             return bot_data
 
 
-def populate_config_values(config_name):
+def populate_config_values(config_name, screener_whitelist):
     test_config_path = get_full_path(['freqtrade', 'user_data', 'config.json'])
     config_values = get_config_values(['configs', config_name])
     bots_config = get_config_values(['bots_config.json'])
@@ -57,6 +59,9 @@ def populate_config_values(config_name):
     config_values['api_server']['username'] = bot_data['api_server_username']
     config_values['api_server']['password'] = bot_data['api_server_password']
 
+    if screener_whitelist:
+        config_values['exchange']['pair_whitelist'] = screener_whitelist
+
     with open(test_config_path, 'w') as file:
         rapidjson.dump(config_values, file, indent=2)
 
@@ -68,8 +73,10 @@ def copy_contents(source_folder, destination_folder):
         shutil.copyfile(source_file, destination_file)
 
 
-if __name__ == '__main__':
-    parameters = sys.argv[1:]
+def main(parameters=None, screener_whitelist=None):
+
+    if not parameters:
+        parameters = sys.argv[1:]
 
     # copy over the strategies and hyperopts
     copy_contents(get_full_path(['hyperopts']), get_full_path(['freqtrade', 'user_data', 'hyperopts']))
@@ -77,12 +84,34 @@ if __name__ == '__main__':
 
     for index, parameter in enumerate(parameters, 0):
         if parameter in ['-c', '--config']:
-            populate_config_values(parameters[index+1])
+            populate_config_values(parameters[index+1], screener_whitelist)
             parameters[index+1] = 'user_data/config.json'
 
     # set the current working directory to the freqtrade folder
     os.chdir(get_full_path(['freqtrade']))
 
     # run freqtrade
-    commands = f'docker-compose run --rm freqtrade {" ".join(parameters)}'
-    os.system(commands)
+    commands = ' '.join(['docker-compose', 'run', '--rm', 'freqtrade'] + parameters)
+
+    # get the path to the log file
+    log_file_path = get_full_path(['freqtrade', 'user_data', 'logs', 'commands.log'])
+
+    # remove the log file if needed
+    if os.path.exists(log_file_path):
+        os.remove(log_file_path)
+
+    # run the freqtrade docker process and wrote the output to a log file
+    log_file = open(log_file_path, "w")
+    if os.system(commands) != 0:
+        try:
+            subprocess.check_call(commands, stderr=log_file)
+
+        except CalledProcessError as error:
+            raise RuntimeError(error)
+
+        finally:
+            log_file.close()
+
+
+if __name__ == '__main__':
+    main()
