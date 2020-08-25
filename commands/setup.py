@@ -11,10 +11,17 @@ freqtrade_folder = os.path.normpath(os.path.join(
 ))
 
 # stop any existing docker containers
-os.system('powershell -Command "If(docker ps -aq){docker stop $(docker ps -aq)}"')
+if sys.platform == 'win32':
+    os.system('powershell -Command "If(docker ps -aq){docker stop $(docker ps -aq)}"')
+else:
+    os.system('if [ $(docker ps -aq) ]; then docker stop $(docker ps -aq); fi')
+
 
 # remove any existing docker containers
-os.system('powershell -Command "docker rm $(docker ps -aq)"')
+if sys.platform == 'win32':
+    os.system('powershell -Command "docker rm $(docker ps -aq)"')
+else:
+    os.system('docker rm $(docker ps -aq)')
 
 # make the user_data folder the current working directory
 os.chdir(os.path.join(os.getcwd(), os.pardir))
