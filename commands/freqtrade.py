@@ -13,21 +13,16 @@ def get_full_path(project_path):
             if folder == 'user_data':
                 path = path[:index+1] + project_path
                 break
-        bots_config_path = f'{path[0]}\\'
+        if sys.platform == 'win32':
+            bots_config_path = f'{path[0]}\\'
+        else:
+            bots_config_path = f'{path[0]}/'
         for item in path:
             bots_config_path = os.path.join(
                 bots_config_path,
                 item
             )
         return bots_config_path
-
-
-def get_bot_config_values(project_path):
-    bots_config = get_full_path(['utils', 'bots_config.json'])
-    with open(bots_config) as file:
-        config_values = rapidjson.load(file)
-
-    return config_values
 
 
 def get_config_values(project_path):
