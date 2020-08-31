@@ -1,5 +1,6 @@
 /strategies/__pycache__/
 /hyperopts/__pycache__/
+/commands/__pycache__/
 /backtest_results/
 /data/
 /hyperopt_results/
