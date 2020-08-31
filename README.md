@@ -14,7 +14,8 @@ With the terminal open inside the project root directory install the dependencie
 
 Follow the instructions for installing docker on your machine [here](https://docs.docker.com/get-docker/).
 
-Create a docker account [here](https://hub.docker.com/signup/) if you haven't already.
+Create a docker account [here](https://hub.docker.com/signup/) if you haven't already and login into docker from the docker
+desktop dashboard.
 
 Setup file sharing for the `freqtrade` folder inside the root of this repo by going to Docker Desktop and then
 `Settings > Resources > File Sharing` Then add the path to your freqtrade folder in your project. This allows docker to 
