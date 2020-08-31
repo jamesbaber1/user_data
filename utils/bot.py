@@ -40,6 +40,7 @@ class Bot:
         self.telegram_token = bot_data['telegram_token']
         self.api_server_username = bot_data['api_server_username']
         self.api_server_password = bot_data['api_server_password']
+        self.stake_currency = self.config_values['stake_currency']
 
         self.get_current_date = datetime.datetime.now().strftime("%Y-%m-%d")
 
@@ -275,18 +276,26 @@ class Bot:
         return {b['asset']: float(b['free']) for b in account['balances']}
 
     def get_coin_balances(self, only_dust=False, only_non_dust=False):
-        logging.debug(f'resetting coin balances for {self.name} by converting all coins to BTC...')
         dust_coins = {}
         non_dust_coins = {}
-
-        # dust is anything less than 0.001 BTC
-        dust = 0.001
 
         prices = self.get_prices()
         balances = self.get_balances()
 
+        # calculate the dust amount relative to the BTC
+        if self.stake_currency != 'BTC':
+            stake_currency_price = prices.get(f'{self.stake_currency}BTC')
+            if not stake_currency_price:
+                stake_currency_price = prices.get(f'BTC{self.stake_currency}')
+            dust = stake_currency_price * 0.001
+        else:
+            dust = 0.001
+
         for ticker, amount in balances.items():
-            price = prices.get(f'{ticker}BTC')
+            price = prices.get(f'{ticker}{self.stake_currency}')
+            if not price:
+                price = prices.get(f'{self.stake_currency}{ticker}')
+
             if price:
                 value = amount * price
 
@@ -306,28 +315,16 @@ class Bot:
             return dust_coins.update(non_dust_coins)
 
     def convert_all_coins_to_stake_coin(self):
-        # TODO Cancel all orders
-        # TODO sort by bitcoin value
-        logging.debug(f'resetting coin balances for {self.name} by converting all coins to BTC...')
-        stake_currency = self.config_values['stake_currency']
-        #
-        # convert all non dust coins to BTC
+        logging.debug(f'resetting coin balances for {self.name} by converting all coins to {self.stake_currency}...')
+        # convert all non dust coins to the stake coin
         non_dust_coins = self.get_coin_balances(only_non_dust=True)
         for ticker, amount in non_dust_coins.items():
             try:
-                self.exchange.create_market_sell_order(symbol=f'{ticker}/BTC', amount=round(amount, 4))
-                print(f"Selling {round(amount, 4)} of {ticker}/BTC")
-            except Exception as error:
-                logging.error(error)
-
-        # convert all BTC to the stake coin
-        if stake_currency != 'BTC':
-            balances = self.get_balances()
-
-            amount = balances['BTC']
-            try:
-                self.exchange.create_market_sell_order(symbol=f'BTC/{stake_currency}', amount=round(amount, 4))
-                print(f"Selling {round(amount, 4)} of BTC/{stake_currency}")
+                self.exchange.create_market_sell_order(
+                    symbol=f'{ticker}/{self.stake_currency}',
+                    amount=self.truncate(amount, 4)
+                )
+                print(f"Selling {self.truncate(amount, 4)} of {ticker}/{self.stake_currency}")
             except Exception as error:
                 logging.error(error)
 
@@ -348,9 +345,9 @@ class Bot:
 
         # if it is a full reset, delete the databases and sell all alt coins
         if self.full_reset:
-            # self.cancel_all_orders()
-            # self.convert_all_coins_to_stake_coin()
-            # self.convert_coin_dust()
+            self.cancel_all_orders()
+            self.convert_all_coins_to_stake_coin()
+            self.convert_coin_dust()
             self.remove_databases()
 
         # reboot the remote machine

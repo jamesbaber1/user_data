@@ -53,7 +53,7 @@ class BB_Strategy02(IStrategy):
     # trailing_stop_positive_offset = 0.0  # Disabled / not configured
 
     # Optimal ticker interval for the strategy.
-    ticker_interval = '1m'
+    ticker_interval = '1h'
 
     # Run "populate_indicators()" only for new candle.
     process_only_new_candles = False
@@ -135,8 +135,8 @@ class BB_Strategy02(IStrategy):
         """
         dataframe.loc[
             (
-                (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1']))
-                # (dataframe['close'] < dataframe['bb_lowerband1'])
+                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1']))
+                (dataframe['close'] < dataframe['bb_lowerband1'])
             ),
             'buy'] = 1
 
