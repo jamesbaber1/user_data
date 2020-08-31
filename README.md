@@ -6,7 +6,9 @@ If you don't have it already download and install PyCharm Community Edition [her
 
 Open Pycharm and create a new project by cloning this git repo address.
 
-With the terminal inside the project root directory install the dependencies by running:
+`https://github.com/jamesbaber1/user_data.git`
+
+With the terminal open inside the project root directory install the dependencies by running:
 
 ``pip install -r requirements.txt``
 
@@ -24,10 +26,10 @@ Your path might look something like this:
 Copy the `example_bots_config.json` and rename it to `bots_config.json`. Then fill out all those values for each of your
 bots.
 
-Optional: If you want to test on a bot, create a new bot in telegram and assign its token to the `TELEGRAM_TOKEN` environment
-variable in each of your runtime configurations.
+Create a new bot in telegram and get its token.
 
-Then in PyCharm in your runtime configurations select `utils > setup` and click the play button to run it.
+Then in PyCharm in your runtime configurations select `utils > setup` and click the play button to run it. Then enter the
+name of the bot to use and the telegram token when prompted.
 
 Freqtrade is now setup and you can run the other configuration commands and any of the other commands listed on:
 [freqtrade.io](freqtrade.io)
