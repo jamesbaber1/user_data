@@ -233,12 +233,12 @@ class Bot:
     def convert_coin_dust(self):
         # get the coins that are below the dust amount
         dust_coins = self.get_coin_balances(only_dust=True)
+        # remove BNB from the list of coins to be converted
+        if 'BNB' in dust_coins:
+            dust_coins.pop('BNB')
+
         if dust_coins:
             logging.debug(f"{self.name} is cleaning up coin dust...")
-
-            # remove BNB from the list of coins to be converted
-            if 'BNB' in dust_coins:
-                dust_coins.pop('BNB')
 
             # convert all the dust coins to BNB
             try:
