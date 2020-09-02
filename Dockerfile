@@ -3,3 +3,4 @@ FROM freqtradeorg/freqtrade:master
 RUN pip3 install -U -r requirements-plot.txt
 RUN pip3 install -U -r requirements-hyperopt.txt
 RUN pip3 install -U -r requirements-common.txt
+RUN pip3 install psutil

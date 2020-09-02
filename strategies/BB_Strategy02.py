@@ -53,7 +53,7 @@ class BB_Strategy02(IStrategy):
     # trailing_stop_positive_offset = 0.0  # Disabled / not configured
 
     # Optimal ticker interval for the strategy.
-    ticker_interval = '1h'
+    ticker_interval = '15m'
 
     # Run "populate_indicators()" only for new candle.
     process_only_new_candles = False
@@ -83,9 +83,9 @@ class BB_Strategy02(IStrategy):
     plot_config = {
         # Main plot indicators (Moving averages, ...)
         'main_plot': {
-            'bb_lowerband1': {'color': 'green'},
-            'bb_middleband1': {'color': 'red'},
-            'bb_upperband1': {'color': 'green'},
+            'bb_lowerband1_1d': {'color': 'green'},
+            'bb_middleband1_1d': {'color': 'red'},
+            'bb_upperband1_1d': {'color': 'green'},
             # 'ma': {'color': 'blue'}
         }
     }
@@ -114,15 +114,27 @@ class BB_Strategy02(IStrategy):
             # Don't do anything if DataProvider is not available.
             return dataframe
 
+        inf_tf = '1d'
         # Get the informative pair
-        informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe='1d')
+        informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=inf_tf)
 
-        for std in range(1, 5):
-            # Bollinger bands
-            bollinger = qtpylib.bollinger_bands(informative['close'], window=3, stds=std)
-            dataframe[f'bb_lowerband{std}'] = bollinger['lower']
-            dataframe[f'bb_middleband{std}'] = bollinger['mid']
-            dataframe[f'bb_upperband{std}'] = bollinger['upper']
+        # calculate the bollinger bands with 1d candles
+        bollinger = qtpylib.bollinger_bands(informative['close'], window=3, stds=1)
+        informative[f'bb_lowerband1'] = bollinger['lower']
+        dataframe[f'bb_middleband1'] = bollinger['mid']
+        informative[f'bb_upperband1'] = bollinger['upper']
+
+        # Rename columns to be unique
+        informative.columns = [f"{col}_{inf_tf}" for col in informative.columns]
+        # Assuming inf_tf = '1d' - then the columns will now be:
+        # date_1d, open_1d, high_1d, low_1d, close_1d, rsi_1d
+
+        # Combine the 2 dataframes
+        # all indicators on the informative sample MUST be calculated before this point
+        dataframe = pd.merge(dataframe, informative, left_on='date', right_on=f'date_{inf_tf}', how='left')
+        # FFill to have the 1d value available in every row throughout the day.
+        # Without this, comparisons would only work once per day.
+        dataframe = dataframe.ffill()
 
         return dataframe
 
@@ -135,8 +147,8 @@ class BB_Strategy02(IStrategy):
         """
         dataframe.loc[
             (
-                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1']))
-                (dataframe['close'] < dataframe['bb_lowerband1'])
+                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1_1d']))
+                (dataframe['close'] < dataframe['bb_lowerband1_1d'])
             ),
             'buy'] = 1
 
@@ -151,8 +163,8 @@ class BB_Strategy02(IStrategy):
         """
         dataframe.loc[
             (
-                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_upperband1']))
-                (dataframe['close'] > dataframe['bb_upperband1'])
+                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_upperband1_1d']))
+                (dataframe['close'] > dataframe['bb_upperband1_1d'])
             ),
             'sell'] = 1
 

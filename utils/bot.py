@@ -231,24 +231,24 @@ class Bot:
             return []
 
     def convert_coin_dust(self):
-        logging.debug(f"{self.name} is cleaning up coin dust...")
-
         # get the coins that are below the dust amount
         dust_coins = self.get_coin_balances(only_dust=True)
+        if dust_coins:
+            logging.debug(f"{self.name} is cleaning up coin dust...")
 
-        # remove BNB from the list of coins to be converted
-        if 'BNB' in dust_coins:
-            dust_coins.pop('BNB')
+            # remove BNB from the list of coins to be converted
+            if 'BNB' in dust_coins:
+                dust_coins.pop('BNB')
 
-        # convert all the dust coins to BNB
-        try:
-            self.exchange.sapiPostAssetDust(
-                params={
-                    'asset': list(dust_coins.keys())
-                }
-            )
-        except Exception as error:
-            logging.error(error)
+            # convert all the dust coins to BNB
+            try:
+                self.exchange.sapiPostAssetDust(
+                    params={
+                        'asset': list(dust_coins.keys())
+                    }
+                )
+            except Exception as error:
+                logging.error(error)
 
     def sort_balances(self, balances):
         sorted_balances = []
@@ -261,12 +261,14 @@ class Bot:
 
     def cancel_all_orders(self):
         orders = self.binance_client.get_open_orders()
-        for order in orders:
-            logging.debug(f"{self.name} canceling {order['side']} order for {order['symbol']}...")
-            self.binance_client.cancel_order(
-                symbol=order['symbol'],
-                orderId=order['orderId']
-            )
+        if orders:
+            logging.debug(f'{self.name} is canceling all orders...')
+            for order in orders:
+                logging.debug(f"{self.name} canceling {order['side']} order for {order['symbol']}...")
+                self.binance_client.cancel_order(
+                    symbol=order['symbol'],
+                    orderId=order['orderId']
+                )
 
     def get_prices(self):
         prices = self.exchange.v3GetTickerPrice()
@@ -316,18 +318,19 @@ class Bot:
             return dust_coins.update(non_dust_coins)
 
     def convert_all_coins_to_stake_coin(self):
-        logging.debug(f'resetting coin balances for {self.name} by converting all coins to {self.stake_currency}...')
         # convert all non dust coins to the stake coin
         non_dust_coins = self.get_coin_balances(only_non_dust=True)
-        for ticker, amount in non_dust_coins.items():
-            try:
-                self.exchange.create_market_sell_order(
-                    symbol=f'{ticker}/{self.stake_currency}',
-                    amount=self.truncate(amount, 4)
-                )
-                print(f"Selling {self.truncate(amount, 4)} of {ticker}/{self.stake_currency}")
-            except Exception as error:
-                logging.error(error)
+        if non_dust_coins:
+            logging.debug(f'{self.name} is converting all coins to {self.stake_currency}...')
+            for ticker, amount in non_dust_coins.items():
+                try:
+                    self.exchange.create_market_sell_order(
+                        symbol=f'{ticker}/{self.stake_currency}',
+                        amount=self.truncate(amount, 4)
+                    )
+                    print(f"Selling {self.truncate(amount, 4)} of {ticker}/{self.stake_currency}")
+                except Exception as error:
+                    logging.error(error)
 
     def report_error(self, message):
         bot_error_message = f'{self.name} Error:\n{message}'
