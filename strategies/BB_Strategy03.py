@@ -148,8 +148,8 @@ class BB_Strategy03(IStrategy):
         dataframe.loc[
             (
                 # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1_1d']))
-                (dataframe['close'] < dataframe['bb_lowerband1_1d']) &
-                (dataframe['volume'] > self.config['stake_amount'])
+                (dataframe['close'] < dataframe['bb_lowerband1_1d']) #&
+                # (dataframe['volume'] > self.config['stake_amount'])
             ),
             'buy'] = 1
 
@@ -165,8 +165,8 @@ class BB_Strategy03(IStrategy):
         dataframe.loc[
             (
                 # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_upperband1_1d']))
-                (dataframe['close'] > dataframe['bb_upperband1_1d']) &
-                (dataframe['volume'] > self.config['stake_amount'])
+                (dataframe['close'] > dataframe['bb_upperband1_1d']) #&
+                # (dataframe['volume'] > self.config['stake_amount'])
             ),
             'sell'] = 1
 
