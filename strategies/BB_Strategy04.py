@@ -152,7 +152,7 @@ class BB_Strategy04(IStrategy):
                 # (dataframe['close'] < dataframe['bb_lowerband1_1d']) #&
                 # (dataframe['volume'] > self.config['stake_amount'])
             ),
-            'buy'] = 3
+            'buy'] = 1
 
         return dataframe
 
@@ -170,6 +170,6 @@ class BB_Strategy04(IStrategy):
                 # (dataframe['close'] > dataframe['bb_upperband1_1d']) #&
                 # (dataframe['volume'] > self.config['stake_amount'])
             ),
-            'sell'] = 3
+            'sell'] = 1
 
         return dataframe
