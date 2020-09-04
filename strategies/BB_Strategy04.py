@@ -13,7 +13,7 @@ import talib.abstract as ta
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 
 
-class BB_Strategy03(IStrategy):
+class BB_Strategy04(IStrategy):
     """
     This is a strategy template to get you started.
     More information in https://github.com/freqtrade/freqtrade/blob/develop/docs/bot-optimization.md
