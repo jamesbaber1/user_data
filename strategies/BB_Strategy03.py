@@ -44,7 +44,7 @@ class BB_Strategy03(IStrategy):
 
     # Optimal stoploss designed for the strategy.
     # This attribute will be overridden if the config file contains "stoploss".
-    stoploss = -0.33985
+    stoploss = -0.05
 
     # Trailing stoploss
     trailing_stop = False
