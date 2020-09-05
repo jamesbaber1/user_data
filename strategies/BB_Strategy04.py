@@ -38,8 +38,8 @@ class BB_Strategy04(IStrategy):
     minimal_roi = {
         "0": 0.02,
         "5": 0.01,
-        "30": 0.05,
-        "120": 0
+        "10": 0.005,
+        "20": 0
     }
 
     # Optimal stoploss designed for the strategy.
