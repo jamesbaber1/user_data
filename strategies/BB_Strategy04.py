@@ -39,6 +39,7 @@ class BB_Strategy04(IStrategy):
         "0": 0.02,
         "5": 0.01,
         "10": 0.005,
+        "15": 0.001,
         "20": 0
     }
 
@@ -147,7 +148,8 @@ class BB_Strategy04(IStrategy):
         """
         dataframe.loc[
             (
-                (dataframe['close'] < dataframe[f'bb_middleband1'])
+                (dataframe['close'] == dataframe['close'])
+                # (dataframe['close'] < dataframe[f'bb_middleband1'])
                 # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1_1d']))
                 # (dataframe['close'] < dataframe['bb_lowerband1_1d']) #&
                 # (dataframe['volume'] > self.config['stake_amount'])
@@ -165,7 +167,8 @@ class BB_Strategy04(IStrategy):
         """
         dataframe.loc[
             (
-                (dataframe['close'] > dataframe[f'bb_middleband1'])
+                (dataframe['close'] == dataframe['high'])
+                # (dataframe['close'] > dataframe[f'bb_middleband1'])
                 # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_upperband1_1d']))
                 # (dataframe['close'] > dataframe['bb_upperband1_1d']) #&
                 # (dataframe['volume'] > self.config['stake_amount'])
