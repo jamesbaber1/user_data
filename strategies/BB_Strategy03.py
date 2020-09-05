@@ -121,7 +121,7 @@ class BB_Strategy03(IStrategy):
         # calculate the bollinger bands with 1d candles
         bollinger = qtpylib.bollinger_bands(informative['close'], window=3, stds=1)
         informative[f'bb_lowerband1'] = bollinger['lower']
-        dataframe[f'bb_middleband1'] = bollinger['mid']
+        informative[f'bb_middleband1'] = bollinger['mid']
         informative[f'bb_upperband1'] = bollinger['upper']
 
         # Rename columns to be unique

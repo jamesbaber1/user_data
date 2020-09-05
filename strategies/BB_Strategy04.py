@@ -36,16 +36,15 @@ class BB_Strategy04(IStrategy):
     # Minimal ROI designed for the strategy.
     # This attribute will be overridden if the config file contains "minimal_roi".
     minimal_roi = {
-        "0": 0.02,
-        "5": 0.01,
-        "10": 0.005,
-        "15": 0.001,
-        "20": 0
+        "0": 1.09767,
+        "3178": 0.31206,
+        "13523": 0.05282,
+        "38158": 0
     }
 
     # Optimal stoploss designed for the strategy.
     # This attribute will be overridden if the config file contains "stoploss".
-    stoploss = -0.33985
+    stoploss = -0.33
 
     # Trailing stoploss
     trailing_stop = False
@@ -54,7 +53,7 @@ class BB_Strategy04(IStrategy):
     # trailing_stop_positive_offset = 0.0  # Disabled / not configured
 
     # Optimal ticker interval for the strategy.
-    ticker_interval = '1m'
+    ticker_interval = '1d'
 
     # Run "populate_indicators()" only for new candle.
     process_only_new_candles = False
@@ -115,6 +114,11 @@ class BB_Strategy04(IStrategy):
             # Don't do anything if DataProvider is not available.
             return dataframe
 
+        if self.dp:
+            if self.dp.runmode.value in ('live', 'dry_run'):
+                ticker = self.dp.ticker(metadata['pair'])
+                dataframe['last_price'] = ticker['last']
+
         inf_tf = '1d'
         # Get the informative pair
         informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=inf_tf)
@@ -122,7 +126,7 @@ class BB_Strategy04(IStrategy):
         # calculate the bollinger bands with 1d candles
         bollinger = qtpylib.bollinger_bands(informative['close'], window=3, stds=1)
         informative[f'bb_lowerband1'] = bollinger['lower']
-        dataframe[f'bb_middleband1'] = bollinger['mid']
+        informative[f'bb_middleband1'] = bollinger['mid']
         informative[f'bb_upperband1'] = bollinger['upper']
 
         # Rename columns to be unique
@@ -148,10 +152,8 @@ class BB_Strategy04(IStrategy):
         """
         dataframe.loc[
             (
-                (dataframe['close'] == dataframe['close'])
-                # (dataframe['close'] < dataframe[f'bb_middleband1'])
                 # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1_1d']))
-                # (dataframe['close'] < dataframe['bb_lowerband1_1d']) #&
+                (dataframe['last_price'] < dataframe['bb_lowerband1_1d']) #&
                 # (dataframe['volume'] > self.config['stake_amount'])
             ),
             'buy'] = 1
@@ -167,10 +169,8 @@ class BB_Strategy04(IStrategy):
         """
         dataframe.loc[
             (
-                (dataframe['close'] == dataframe['high'])
-                # (dataframe['close'] > dataframe[f'bb_middleband1'])
                 # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_upperband1_1d']))
-                # (dataframe['close'] > dataframe['bb_upperband1_1d']) #&
+                (dataframe['last_price'] > dataframe['bb_upperband1_1d']) #&
                 # (dataframe['volume'] > self.config['stake_amount'])
             ),
             'sell'] = 1
