@@ -39,12 +39,6 @@
             "rateLimit": 200
         },
         "pair_whitelist": [
-          "BTCUP/USDT",
-          "ETHUP/USDT",
-          "ADAUP/USDT",
-          "LINKUP/USDT",
-          "BNBUP/USDT",
-          "XTZUP/USDT",
           "BTCDOWN/USDT",
           "ETHDOWN/USDT",
           "ADADOWN/USDT",
