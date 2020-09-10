@@ -43,13 +43,11 @@
           "BTCDOWN/USDT",
           "ETHUP/USDT",
           "ETHDOWN/USDT",
-          "ADAUP/USDT",
           "ADADOWN/USDT",
           "LINKDOWN/USDT",
           "LINKUP/USDT",
           "BNBUP/USDT",
           "BNBDOWN/USDT",
-          "XTZUP/USDT",
           "XTZDOWN/USDT"
         ],
         "pair_blacklist": [
