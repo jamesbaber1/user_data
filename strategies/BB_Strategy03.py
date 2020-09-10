@@ -44,7 +44,7 @@ class BB_Strategy03(IStrategy):
 
     # Optimal stoploss designed for the strategy.
     # This attribute will be overridden if the config file contains "stoploss".
-    stoploss = -0.05
+    stoploss = -0.33
 
     # Trailing stoploss
     trailing_stop = False
@@ -53,7 +53,7 @@ class BB_Strategy03(IStrategy):
     # trailing_stop_positive_offset = 0.0  # Disabled / not configured
 
     # Optimal ticker interval for the strategy.
-    ticker_interval = '1m'
+    ticker_interval = '1d'
 
     # Run "populate_indicators()" only for new candle.
     process_only_new_candles = False
