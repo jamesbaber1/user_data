@@ -33,6 +33,7 @@
         "name": "binance",
         "key": "",
         "secret": "",
+        "outdated_offset": 1441,
         "ccxt_config": {"enableRateLimit": true},
         "ccxt_async_config": {
             "enableRateLimit": true,

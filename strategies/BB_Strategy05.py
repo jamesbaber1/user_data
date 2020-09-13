@@ -56,7 +56,7 @@ class BB_Strategy05(IStrategy):
     # trailing_stop_positive_offset = 0.0  # Disabled / not configured
 
     # Optimal ticker interval for the strategy.
-    ticker_interval = '1d'
+    ticker_interval = '1m'
 
     # Run "populate_indicators()" only for new candle.
     process_only_new_candles = False
@@ -96,17 +96,13 @@ class BB_Strategy05(IStrategy):
     }
 
     def informative_pairs(self):
-        """
-        Define additional, informative pair/interval combinations to be cached from the exchange.
-        These pair/interval combinations are non-tradeable, unless they are part
-        of the whitelist as well.
-        For more information, please consult the documentation
-        :return: List of tuples in the format (pair, interval)
-            Sample: return [("ETH/USDT", "5m"),
-                            ("BTC/USDT", "15m"),
-                            ]
-        """
-        return []
+
+        # get access to all pairs available in whitelist.
+        pairs = self.dp.current_whitelist()
+        # Assign tf to each pair so they can be downloaded and cached for strategy.
+        informative_pairs = [(pair, '1d') for pair in pairs]
+
+        return informative_pairs
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         """
@@ -123,32 +119,40 @@ class BB_Strategy05(IStrategy):
             # Don't do anything if DataProvider is not available.
             return dataframe
 
+        inf_tf = '1d'
+        # Get the informative pair
+        informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=inf_tf)
+
         if self.dp:
             if self.dp.runmode.value in ('live', 'dry_run'):
+
                 now = datetime.utcnow()
                 time = pd.Timestamp(year=now.year, month=now.month, day=now.day, tz="GMT+0")
 
                 ticker = self.dp.ticker(metadata['pair'])
                 new_row = {
                     'date': time,
-                    'open': dataframe['open'].values[-1],
-                    'high': dataframe['high'].values[-1],
-                    'low': dataframe['low'].values[-1],
+                    'open': informative['open'].values[-1],
+                    'high': informative['high'].values[-1],
+                    'low': informative['low'].values[-1],
                     'close': ticker['last'],
-                    'volume': dataframe['volume'].values[-1]
+                    'volume': informative['volume'].values[-1]
                 }
-                dataframe = dataframe.append(new_row, ignore_index=True)
+                informative = informative.append(new_row, ignore_index=True)
 
-        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=3, stds=1)
-        dataframe[f'bb_lowerband1'] = bollinger['lower']
-        dataframe[f'bb_middleband1'] = bollinger['mid']
-        dataframe[f'bb_upperband1'] = bollinger['upper']
+        # calculate the bollinger bands with 1d candles
+        bollinger = qtpylib.bollinger_bands(informative['close'], window=3, stds=1)
+        informative[f'bb_lowerband1'] = bollinger['lower']
+        informative[f'bb_middleband1'] = bollinger['mid']
+        informative[f'bb_upperband1'] = bollinger['upper']
+
+        dataframe = informative
 
         # pd.set_option('display.max_columns', None)
         # pd.set_option('display.width', 300)
         # pd.get_option("display.max_colwidth")
-        # logger.info(f'---------Pair: {metadata["pair"]}-------------------')
-        # logger.info(f'\n\n{dataframe.to_markdown()}')
+        logger.info(f'-----Populate----Pair: {metadata["pair"]}-------------------')
+        logger.info(f'\n\n{dataframe.to_markdown()}')
         return dataframe
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
@@ -166,6 +170,9 @@ class BB_Strategy05(IStrategy):
             ),
             'buy'] = 1
 
+        logger.info(f'-----Buy----Pair: {metadata["pair"]}-------------------')
+        logger.info(f'\n\n{dataframe.to_markdown()}')
+
         return dataframe
 
     def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
@@ -181,5 +188,8 @@ class BB_Strategy05(IStrategy):
                 (dataframe['close'] > dataframe['bb_middleband1'])
             ),
             'sell'] = 1
+
+        logger.info(f'-----Sell----Pair: {metadata["pair"]}-------------------')
+        logger.info(f'\n\n{dataframe.to_markdown()}')
 
         return dataframe
