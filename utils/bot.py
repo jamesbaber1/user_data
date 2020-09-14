@@ -9,9 +9,6 @@ import rapidjson
 import datetime
 import telegram
 import threading
-from requests.exceptions import ConnectionError, Timeout, HTTPError, TooManyRedirects, ReadTimeout
-from binance.client import Client
-from ccxt import ExchangeError
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('telegram').setLevel(logging.WARNING)
@@ -41,6 +38,7 @@ class Bot:
         self.api_server_username = bot_data['api_server_username']
         self.api_server_password = bot_data['api_server_password']
         self.stake_currency = self.config_values['stake_currency']
+        self.fiat_display_currency = self.config_values['fiat_display_currency']
 
         self.get_current_date = datetime.datetime.now().strftime("%Y-%m-%d")
 
@@ -56,8 +54,6 @@ class Bot:
             'timeout': 30000,
             'enableRateLimit': True,
         })
-
-        self.binance_client = Client(self.exchange_key, self.exchange_secret)
 
         self.alert_bot = telegram.Bot(token=bot_alert_data['telegram_token'])
         self.alert_bot_telegram_chat_id = bot_alert_data['telegram_chat_id']
@@ -123,7 +119,7 @@ class Bot:
 
         # if a connection error is thrown, try again and increase the fail count
         except Exception:
-            self.check_connection(fail_count+1)
+            self.check_connection(fail_count + 1)
 
     def ping_bot(self, fail_count=1):
         try:
@@ -138,7 +134,7 @@ class Bot:
                 return None
 
         except requests.exceptions.ConnectionError:
-            self.ping_bot(fail_count+1)
+            self.ping_bot(fail_count + 1)
 
     def stop_bot(self, fail_count=0):
         response = self.api_post('stop')
@@ -260,15 +256,26 @@ class Bot:
         return sorted_balances
 
     def cancel_all_orders(self):
-        orders = self.binance_client.get_open_orders()
+        # get all open orders
+        orders = self.exchange.privateGetOpenOrders()
         if orders:
             logging.debug(f'{self.name} is canceling all orders...')
+
+            # get the full ticker names with slashes from symbols without slashes
+            symbols = {}
+            tickers = bot.exchange.fetchTickers()
+            for ticker in tickers.keys():
+                symbols[ticker.replace('/', '')] = ticker
+
+            # cancel each open order
             for order in orders:
                 logging.debug(f"{self.name} canceling {order['side']} order for {order['symbol']}...")
-                self.binance_client.cancel_order(
-                    symbol=order['symbol'],
-                    orderId=order['orderId']
-                )
+                self.exchange.cancel_order(
+                    order['orderId'],
+                    symbols[order['symbol']],
+                    params={
+                        'clientOrderId': order['clientOrderId']
+                    })
 
     def get_prices(self):
         prices = self.exchange.v3GetTickerPrice()
@@ -277,6 +284,31 @@ class Bot:
     def get_balances(self):
         account = self.exchange.fetchBalance(params={'type': 'SPOT'})['info']
         return {b['asset']: float(b['free']) for b in account['balances']}
+
+    def get_total_account_balance(self):
+        prices = self.get_prices()
+        balances = self.get_balances()
+
+        total = 0
+
+        for ticker, amount in balances.items():
+            price = prices.get(f'{ticker}{self.stake_currency}') or prices.get(f'{self.stake_currency}{ticker}')
+
+            if price and amount > 0:
+                total = total + price
+
+        # get the price of the stake currency against the price of the fiat display currency
+        fiat_price = prices.get('USDT/USD')
+        #     f'{self.fiat_display_currency}{self.stake_currency}'
+        # ) or prices.get(
+        #     f'{self.stake_currency}{self.fiat_display_currency}'
+        # )
+
+        print(fiat_price)
+
+        total = (total + balances[self.stake_currency]) * fiat_price
+
+        return total
 
     def get_coin_balances(self, only_dust=False, only_non_dust=False):
         dust_coins = {}
@@ -287,9 +319,7 @@ class Bot:
 
         # calculate the dust amount relative to the BTC
         if self.stake_currency != 'BTC':
-            stake_currency_price = prices.get(f'{self.stake_currency}BTC')
-            if not stake_currency_price:
-                stake_currency_price = prices.get(f'BTC{self.stake_currency}')
+            stake_currency_price = prices.get(f'{self.stake_currency}BTC') or prices.get(f'BTC{self.stake_currency}')
             dust = stake_currency_price * 0.001
         else:
             dust = 0.001
@@ -328,7 +358,7 @@ class Bot:
                         symbol=f'{ticker}/{self.stake_currency}',
                         amount=self.truncate(amount, 4)
                     )
-                    print(f"Selling {self.truncate(amount, 4)} of {ticker}/{self.stake_currency}")
+                    logging.debug(f"Selling {self.truncate(amount, 4)} of {ticker}/{self.stake_currency}")
                 except Exception as error:
                     logging.error(error)
 
