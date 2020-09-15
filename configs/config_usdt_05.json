@@ -1,7 +1,7 @@
 {
     "max_open_trades": 12,
     "stake_currency": "USDT",
-    "stake_amount": 415,
+    "stake_amount": 1000,
     "tradable_balance_ratio": 0.99,
     "fiat_display_currency": "USD",
     "dry_run": true,
@@ -48,8 +48,6 @@
           "ADADOWN/USDT",
           "LINKDOWN/USDT",
           "LINKUP/USDT",
-          "BNBUP/USDT",
-          "BNBDOWN/USDT",
           "XTZUP/USDT",
           "XTZDOWN/USDT"
         ],
