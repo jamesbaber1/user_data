@@ -1,12 +1,12 @@
 import os
-import sys
-import shutil
 import logging
 import docker
 from xml.etree import ElementTree
 from freqtrade import kill_all_containers, get_full_path
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger('setup')
+logger.setLevel(logging.INFO)
 
 
 def copy_runtime_configs():

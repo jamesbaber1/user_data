@@ -3,10 +3,10 @@ import os
 import rapidjson
 import shutil
 import logging
-import docker
 
-logging.basicConfig(level=logging.ERROR)
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger('copy')
+logger.setLevel(logging.INFO)
 
 
 def get_full_path(project_path):
@@ -81,30 +81,18 @@ def copy_contents(source_folder, destination_folder):
 
 
 def copy_credentials(parameters=None, screener_whitelist=None):
+    logger.info('Copying over project files..')
     # copy over the strategies, hyperopts, and configs
     copy_contents(get_full_path(['hyperopts']), get_full_path(['freqtrade', 'user_data', 'hyperopts']))
     copy_contents(get_full_path(['strategies']), get_full_path(['freqtrade', 'user_data', 'strategies']))
 
+    logger.info('Populating config credentials...')
     # populate configs with keys
     for _, _, configs in os.walk(get_full_path(['configs']), topdown=True):
         for config in configs:
             populate_config_values(config, screener_whitelist)
 
 
-def kill_all_containers():
-    client = docker.from_env()
-    for container in client.containers.list():
-        container.kill()
-
-
-def main(parameters=None, screener_whitelist=None):
-    if os.environ.get('KILL'):
-        kill_all_containers()
-
-    if os.environ.get('COPY'):
-        # copy over the files, and populate the keys
-        copy_credentials(parameters, screener_whitelist)
-
-
 if __name__ == '__main__':
-    main()
+    # copy over the files, and populate the keys
+    copy_credentials()
