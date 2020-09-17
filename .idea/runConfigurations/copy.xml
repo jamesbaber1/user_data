@@ -1,12 +1,12 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" factoryName="Python" folderName="utils" name="copy" type="PythonConfigurationType">
+  <configuration default="false" name="copy" type="PythonConfigurationType" factoryName="Python" folderName="utils">
     <module name="user_data" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
     <envs>
       <env name="PYTHONUNBUFFERED" value="1" />
-      <env name="TEST_BOT" value="Freqtrade_Bot_01" />
-      <env name="TELEGRAM_TOKEN" value="1019262658:AAE5aIg6IkikY8Da4RTB3SwyHLvhI8_tkB0" />
+      <env name="TEST_BOT" value="0" />
+      <env name="TELEGRAM_TOKEN" value="0" />
     </envs>
     <option name="SDK_HOME" value="" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/commands" />
@@ -14,7 +14,7 @@
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-    <option name="SCRIPT_NAME" value="C:\Users\James Baber\PycharmProjects\user_data\commands\utils.py" />
+    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/commands/utils.py" />
     <option name="PARAMETERS" value="" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
