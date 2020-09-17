@@ -1,6 +1,4 @@
 .DS_Store
-.idea
-/.idea/*
 /strategies/__pycache__/
 /hyperopts/__pycache__/
 /commands/__pycache__/

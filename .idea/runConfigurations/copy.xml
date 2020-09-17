@@ -1,11 +1,11 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="stop all" type="PythonConfigurationType" factoryName="Python" folderName="utils">
+  <configuration default="false" factoryName="Python" folderName="utils" name="copy" type="PythonConfigurationType">
     <module name="user_data" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
     <envs>
       <env name="PYTHONUNBUFFERED" value="1" />
-      <env name="KILL" value="1" />
+      <env name="COPY" value="1" />
     </envs>
     <option name="SDK_HOME" value="" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/commands" />

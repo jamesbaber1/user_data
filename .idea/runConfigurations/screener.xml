@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="screener" type="PythonConfigurationType" factoryName="Python" folderName="utils" nameIsGenerated="true">
+  <configuration default="false" factoryName="Python" folderName="utils" name="screener" nameIsGenerated="true" type="PythonConfigurationType">
     <module name="user_data" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />

@@ -2,10 +2,8 @@ import sys
 import os
 import rapidjson
 import shutil
-import docker
-import time
-import pyperclip
 import logging
+import docker
 
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
@@ -31,8 +29,9 @@ def get_full_path(project_path):
 
 
 def get_config_values(project_path):
-    bots_config = get_full_path(project_path)
-    with open(bots_config) as file:
+    config = get_full_path(project_path)
+    print(config)
+    with open(config) as file:
         config_values = rapidjson.load(file)
 
     return config_values
@@ -45,7 +44,8 @@ def get_bot_data(bot_config):
 
 
 def populate_config_values(config_name, screener_whitelist):
-    test_config_path = get_full_path(['freqtrade', 'user_data', 'config.json'])
+    print(config_name)
+    test_config_path = get_full_path(['freqtrade', 'user_data', 'configs', config_name])
     config_values = get_config_values(['configs', config_name])
     bots_config = get_config_values(['bots_config.json'])
     bot_data = get_bot_data(bots_config)
@@ -62,6 +62,13 @@ def populate_config_values(config_name, screener_whitelist):
     if screener_whitelist:
         config_values['exchange']['pair_whitelist'] = screener_whitelist
 
+    # create the configs folder if it doesn't exist
+    configs_folder = os.path.dirname(test_config_path)
+    print(configs_folder)
+    if not os.path.exists(configs_folder):
+        os.mkdir(configs_folder)
+
+    # write the populate config file to disk
     with open(test_config_path, 'w') as file:
         rapidjson.dump(config_values, file, indent=2)
 
@@ -73,70 +80,30 @@ def copy_contents(source_folder, destination_folder):
         shutil.copyfile(source_file, destination_file)
 
 
-def get_commands(parameters=None, screener_whitelist=None):
-    if not parameters:
-        parameters = sys.argv[1:]
-
-    # copy over the strategies and hyperopts
+def copy_credentials(parameters=None, screener_whitelist=None):
+    # copy over the strategies, hyperopts, and configs
     copy_contents(get_full_path(['hyperopts']), get_full_path(['freqtrade', 'user_data', 'hyperopts']))
     copy_contents(get_full_path(['strategies']), get_full_path(['freqtrade', 'user_data', 'strategies']))
 
-    for index, parameter in enumerate(parameters, 0):
-        if parameter in ['-c', '--config']:
-            populate_config_values(parameters[index + 1], screener_whitelist)
-            parameters[index + 1] = 'user_data/config.json'
-
-    # set the current working directory to the freqtrade folder
-    os.chdir(get_full_path(['freqtrade']))
-
-    return ' '.join(parameters)
+    # populate configs with keys
+    for _, _, configs in os.walk(get_full_path(['configs']), topdown=True):
+        for config in configs:
+            populate_config_values(config, screener_whitelist)
 
 
-def run_docker_container(client, commands):
-    container = client.containers.run(
-        'freqtradefull', commands,
-        working_dir=r'/freqtrade/',
-        detach=True,
-        volumes={get_full_path(['freqtrade', 'user_data']): {'bind': '/freqtrade/user_data', 'mode': 'rw'}}
-    )
-    previous_docker_logs = ''
-    while client.containers.list():
-        time.sleep(1)
-        docker_logs = container.logs().decode("utf-8")
-        output = docker_logs.replace(previous_docker_logs, '')
-        if output:
-            print(output)
-
-        previous_docker_logs = docker_logs
-
-    terminal_command = f"docker-compose run --rm freqtrade {commands}"
-
-    logger.error(
-        f"Run this command from the terminal in the ./freqtrade folder to see the full output:"
-        f"\n\n{terminal_command}"
-    )
-
-    # copies the command to the clipboard
-    pyperclip.copy(terminal_command)
-
-
-def kill_all_containers(client):
+def kill_all_containers():
+    client = docker.from_env()
     for container in client.containers.list():
         container.kill()
 
 
 def main(parameters=None, screener_whitelist=None):
-    # get the docker client
-    client = docker.from_env()
+    if os.environ.get('KILL'):
+        kill_all_containers()
 
-    # kill any existing containers
-    kill_all_containers(client)
-
-    # copy over the files, populate the keys, then return the correct freqtrade commands
-    commands = get_commands(parameters, screener_whitelist)
-
-    # run the docker container with the commands
-    run_docker_container(client, commands)
+    if os.environ.get('COPY'):
+        # copy over the files, and populate the keys
+        copy_credentials(parameters, screener_whitelist)
 
 
 if __name__ == '__main__':

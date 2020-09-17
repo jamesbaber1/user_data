@@ -1,8 +1,8 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="plot" type="docker-deploy" factoryName="docker-image" folderName="freqtrade commands" server-name="Docker">
+  <configuration default="false" name="hyperopt" type="docker-deploy" factoryName="docker-image" folderName="freqtrade commands" server-name="Docker">
     <deployment type="docker-image">
       <settings>
-        <option name="command" value="plot-dataframe --config ./user_data/configs/config_usdt_05.json --strategy BB_Strategy05 --pairs LINKUP/USDT" />
+        <option name="command" value="hyperopt --config ./user_data/configs/config_usdt_05.json --strategy BB_Strategy03 --hyperopt BB_Hyperopt02 -e 1000 --spaces all" />
         <option name="containerName" value="" />
         <option name="entrypoint" value="" />
         <option name="imageTag" value="freqtradefull" />
