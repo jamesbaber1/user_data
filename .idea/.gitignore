@@ -2,3 +2,4 @@
 /workspace.xml
 copy.xml
 /dictionaries/*
+/runConfigurations/copy.xml
