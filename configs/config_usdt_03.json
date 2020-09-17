@@ -1,11 +1,11 @@
 {
     "max_open_trades": -1,
     "stake_currency": "USDT",
-    "stake_amount": 130,
+    "stake_amount": 100,
     "tradable_balance_ratio": 0.99,
     "fiat_display_currency": "USD",
     "dry_run": true,
-    "dry_run_wallet": 5700,
+    "dry_run_wallet": 5000,
     "unfilledtimeout": {
         "buy": 10,
         "sell": 30
