@@ -50,9 +50,6 @@ def build_docker_image():
 
 
 def setup_freqtrade():
-    # stop any existing docker containers
-    kill_all_containers()
-
     # copy and populate configs
     build_docker_image()
 
