@@ -2,7 +2,7 @@ import os
 import logging
 import docker
 from xml.etree import ElementTree
-from freqtrade import kill_all_containers, get_full_path
+from utils import get_full_path
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('setup')
