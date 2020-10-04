@@ -5,13 +5,12 @@ import string
 import os.path
 import datetime
 import logging
-import time
 
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
-from bot import Bot
+from utils.bot import Bot
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('googleapiclient').setLevel(logging.ERROR)
@@ -156,26 +155,22 @@ class BotSheet:
                         self.set_value(field_range, strategy)
 
 
-if __name__ == "__main__":
+def update():
+    with open('bots_config.json') as bots_config:
+        data = json.load(bots_config)
 
-    while True:
-        with open('bots_config.json') as bots_config:
-            data = json.load(bots_config)
+    bot_sheet = BotSheet(data['sheet_data'], data['bots_data'])
+    for bot_data in data['bots_data']:
+        bot = Bot(bot_data, data['bot_alerts'])
 
-        bot_sheet = BotSheet(data['sheet_data'], data['bots_data'])
-        for bot_data in data['bots_data']:
-            bot = Bot(bot_data, data['bot_alerts'])
+        try:
+            print(bot.name)
+            bot_sheet.update_daily(bot)
 
-            try:
-                print(bot.name)
-                bot_sheet.update_daily(bot)
+            bot_sheet.update_balance(bot)
 
-                bot_sheet.update_balance(bot)
+            bot_sheet.update_strategy(bot)
 
-                bot_sheet.update_strategy(bot)
-
-            except Exception as error:
-                bot.report_error(str(error))
-
-        time.sleep(300)
+        except Exception as error:
+            bot.report_error(str(error))
 

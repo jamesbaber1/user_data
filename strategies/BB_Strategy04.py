@@ -44,7 +44,7 @@ class BB_Strategy04(IStrategy):
 
     # Optimal stoploss designed for the strategy.
     # This attribute will be overridden if the config file contains "stoploss".
-    stoploss = -0.33
+    stoploss = -0.04
 
     # Trailing stoploss
     trailing_stop = False
@@ -53,7 +53,7 @@ class BB_Strategy04(IStrategy):
     # trailing_stop_positive_offset = 0.0  # Disabled / not configured
 
     # Optimal ticker interval for the strategy.
-    ticker_interval = '1d'
+    ticker_interval = '1h'
 
     # Run "populate_indicators()" only for new candle.
     process_only_new_candles = False
@@ -83,21 +83,26 @@ class BB_Strategy04(IStrategy):
     plot_config = {
         # Main plot indicators (Moving averages, ...)
         'main_plot': {
-            'bb_lowerband1_1d': {'color': 'green'},
-            'bb_middleband1_1d': {'color': 'red'},
-            'bb_upperband1_1d': {'color': 'green'},
+            'bb_lowerband2': {'color': 'red'},
+            'bb_lowerband1': {'color': 'green'},
+            'bb_middleband1': {'color': 'orange'},
+            'bb_upperband1': {'color': 'green'},
             # 'ma': {'color': 'blue'}
         }
     }
 
     def informative_pairs(self):
-
-        # get access to all pairs available in whitelist.
-        pairs = self.dp.current_whitelist()
-        # Assign tf to each pair so they can be downloaded and cached for strategy.
-        informative_pairs = [(pair, '1d') for pair in pairs]
-
-        return informative_pairs
+        """
+        Define additional, informative pair/interval combinations to be cached from the exchange.
+        These pair/interval combinations are non-tradeable, unless they are part
+        of the whitelist as well.
+        For more information, please consult the documentation
+        :return: List of tuples in the format (pair, interval)
+            Sample: return [("ETH/USDT", "5m"),
+                            ("BTC/USDT", "15m"),
+                            ]
+        """
+        return []
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         """
@@ -110,36 +115,12 @@ class BB_Strategy04(IStrategy):
         :param metadata: Additional information, like the currently traded pair
         :return: a Dataframe with all mandatory indicators for the strategies
         """
-        if not self.dp:
-            # Don't do anything if DataProvider is not available.
-            return dataframe
-
-        if self.dp:
-            if self.dp.runmode.value in ('live', 'dry_run'):
-                ticker = self.dp.ticker(metadata['pair'])
-                dataframe['last_price'] = ticker['last']
-
-        inf_tf = '1d'
-        # Get the informative pair
-        informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=inf_tf)
-
-        # calculate the bollinger bands with 1d candles
-        bollinger = qtpylib.bollinger_bands(informative['close'], window=3, stds=1)
-        informative[f'bb_lowerband1'] = bollinger['lower']
-        informative[f'bb_middleband1'] = bollinger['mid']
-        informative[f'bb_upperband1'] = bollinger['upper']
-
-        # Rename columns to be unique
-        informative.columns = [f"{col}_{inf_tf}" for col in informative.columns]
-        # Assuming inf_tf = '1d' - then the columns will now be:
-        # date_1d, open_1d, high_1d, low_1d, close_1d, rsi_1d
-
-        # Combine the 2 dataframes
-        # all indicators on the informative sample MUST be calculated before this point
-        dataframe = pd.merge(dataframe, informative, left_on='date', right_on=f'date_{inf_tf}', how='left')
-        # FFill to have the 1d value available in every row throughout the day.
-        # Without this, comparisons would only work once per day.
-        dataframe = dataframe.ffill()
+        for std in [1, 2]:
+            # Bollinger bands
+            bollinger = qtpylib.bollinger_bands(dataframe['close'], window=72, stds=std)
+            dataframe[f'bb_lowerband{std}'] = bollinger['lower']
+            dataframe[f'bb_middleband{std}'] = bollinger['mid']
+            dataframe[f'bb_upperband{std}'] = bollinger['upper']
 
         return dataframe
 
@@ -152,8 +133,9 @@ class BB_Strategy04(IStrategy):
         """
         dataframe.loc[
             (
-                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1_1d']))
-                (dataframe['last_price'] < dataframe['bb_lowerband1_1d']) #&
+                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1']))
+                (dataframe['close'] < dataframe['bb_lowerband1']) &
+                (dataframe['close'] > dataframe['bb_lowerband2'])
                 # (dataframe['volume'] > self.config['stake_amount'])
             ),
             'buy'] = 1
@@ -169,8 +151,9 @@ class BB_Strategy04(IStrategy):
         """
         dataframe.loc[
             (
-                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_upperband1_1d']))
-                (dataframe['last_price'] > dataframe['bb_upperband1_1d']) #&
+                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_upperband1']))
+                (dataframe['close'] > dataframe['bb_upperband1'])
+                # (dataframe['close'] < dataframe['bb_lowerband1.5'])
                 # (dataframe['volume'] > self.config['stake_amount'])
             ),
             'sell'] = 1

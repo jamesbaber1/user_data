@@ -1,4 +1,5 @@
 import boto3
+import os
 ec2 = boto3.resource('ec2')
 client = boto3.client('transcribe')
 
@@ -15,8 +16,11 @@ def list_instance_name():
                     print(tag['Value'])
 
 def create_private_key():
+
+    if os.path.exists('./keys'):
+        os.mkdir('./keys')
     # create a file to store the key locally
-    outfile = open('trading_bot.pem', 'w')
+    outfile = open('./keys/trading_bot.pem', 'w')
 
     # call the boto ec2 function to create a key pair
     ec2.delete_key_pair(KeyName='trading_bot')
@@ -35,7 +39,7 @@ def create_bot():
 
     # create a new EC2 instance
     instances = ec2.create_instances(
-        ImageId='ami-09d95fab7fff3776c',
+        ImageId='ami-0817d428a6fb68645',
         MinCount=1,
         MaxCount=1,
         InstanceType='t2.micro',
@@ -59,4 +63,6 @@ def run_command():
 
     print(feedback['StandardOutputContent'])
 
-create_bot()
+
+create_private_key()
+# create_bot()

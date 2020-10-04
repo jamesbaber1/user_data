@@ -38,6 +38,19 @@ def copy_runtime_configs():
     tree.write(copy_runtime_config_path)
 
 
+def create_user_data_folder():
+    logger.info('Creating freqtrade user data folder...')
+    client = docker.from_env()
+    client.containers.run(
+        image="freqtradefull",
+        command="create-userdir --userdir user_data",
+        volumes={
+            get_full_path(['freqtrade', 'user_data']): {
+                'bind': '/freqtrade/user_data', 'mode': 'rw'}
+        }
+    )
+
+
 def build_docker_image():
     logger.info('Building full freqtrade docker image...')
     client = docker.from_env()
@@ -49,11 +62,8 @@ def build_docker_image():
     )
 
 
-def setup_freqtrade():
-    # copy and populate configs
-    build_docker_image()
-
-
 if __name__ == '__main__':
     copy_runtime_configs()
-    setup_freqtrade()
+    build_docker_image()
+    create_user_data_folder()
+    logger.info('Setup completed successfully!')
