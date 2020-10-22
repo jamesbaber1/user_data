@@ -41,6 +41,7 @@ class Scalp_Strategy01(IStrategy):
         dataframe['cci'] = ta.CCI(dataframe, timeperiod=20)
         dataframe['rsi'] = ta.RSI(dataframe, timeperiod=14)
         dataframe['mfi'] = ta.MFI(dataframe)
+        dataframe['sma'] = ta.SMA(dataframe, timeperiod=20, price='close')
 
         # required for graphing
         bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
@@ -53,22 +54,23 @@ class Scalp_Strategy01(IStrategy):
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe.loc[
             (
-                (
-                        (dataframe['open'] < dataframe['ema_low']) &
-                        (dataframe['adx'] > 30) &
-                        (dataframe['mfi'] < 30) &
-                        (
-                                (dataframe['fastk'] < 30) &
-                                (dataframe['fastd'] < 30) &
-                                (qtpylib.crossed_above(dataframe['fastk'], dataframe['fastd']))
-                        ) &
-                        (dataframe['resample_sma'] < dataframe['close'])
-                )
+                # (
+                #         # (dataframe['open'] < dataframe['ema_low']) &
+                #         # (dataframe['adx'] > 30) &
+                #         # (dataframe['mfi'] < 30) &
+                #         # (
+                #         #         (dataframe['fastk'] < 30) &
+                #         #         (dataframe['fastd'] < 30) &
+                #         #         (qtpylib.crossed_above(dataframe['fastk'], dataframe['fastd']))
+                #         # ) &
+                #         # (dataframe['sma'] < dataframe['close'])
+                #         # (dataframe['resample_sma'] < dataframe['close'])
+                # )
                 # |
-                # # try to get some sure things independent of resample
-                # ((dataframe['rsi'] - dataframe['mfi']) < 10) &
-                # (dataframe['mfi'] < 30) &
-                # (dataframe['cci'] < -200)
+                # try to get some sure things independent of resample
+                ((dataframe['rsi'] - dataframe['mfi']) < 10) &
+                (dataframe['mfi'] < 30) &
+                (dataframe['cci'] < -200)
             ),
             'buy'] = 1
         return dataframe

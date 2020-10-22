@@ -17,13 +17,13 @@ def list_instance_name():
 
 def create_private_key():
 
-    if os.path.exists('./keys'):
+    if not os.path.exists('./keys'):
         os.mkdir('./keys')
     # create a file to store the key locally
     outfile = open('./keys/trading_bot.pem', 'w')
 
     # call the boto ec2 function to create a key pair
-    ec2.delete_key_pair(KeyName='trading_bot')
+    key_pair = ec2.KeyPair('trading_bot')
     key_pair = ec2.create_key_pair(KeyName='trading_bot')
 
     print(key_pair['KeyMaterial'])

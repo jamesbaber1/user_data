@@ -1,5 +1,5 @@
-import bot
-import bot_sheet
+from . import bot
+from . import bot_sheet
 
 
 __all__ = [
