@@ -37,9 +37,9 @@ class BB_Strategy04(IStrategy):
     # This attribute will be overridden if the config file contains "minimal_roi".
     minimal_roi = {
         "0": 1.09767,
-        "3178": 0.31206,
-        "13523": 0.05282,
-        "38158": 0
+        "5": 0.31206,
+        "1000": 0.05282,
+        "4000": 0
     }
 
     # Optimal stoploss designed for the strategy.
@@ -115,9 +115,12 @@ class BB_Strategy04(IStrategy):
         :param metadata: Additional information, like the currently traded pair
         :return: a Dataframe with all mandatory indicators for the strategies
         """
+        # RSI
+        dataframe['rsi'] = ta.RSI(dataframe)
+
         for std in [1, 2]:
             # Bollinger bands
-            bollinger = qtpylib.bollinger_bands(dataframe['close'], window=72, stds=std)
+            bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=std)
             dataframe[f'bb_lowerband{std}'] = bollinger['lower']
             dataframe[f'bb_middleband{std}'] = bollinger['mid']
             dataframe[f'bb_upperband{std}'] = bollinger['upper']
@@ -134,8 +137,9 @@ class BB_Strategy04(IStrategy):
         dataframe.loc[
             (
                 # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1']))
-                (dataframe['close'] < dataframe['bb_lowerband1']) #&
-                # (dataframe['close'] > dataframe['bb_lowerband2'])
+                (dataframe['close'] < dataframe['bb_lowerband1']) &
+                (dataframe['close'] > dataframe['bb_lowerband2'])
+
                 # (dataframe['volume'] > self.config['stake_amount'])
             ),
             'buy'] = 1

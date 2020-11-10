@@ -13,7 +13,7 @@ import talib.abstract as ta
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 
 
-class TEMA_BB_RSI_Strategy01(IStrategy):
+class TEMA_BB_Strategy01(IStrategy):
     """
     This is a strategy template to get you started.
     More information in https://github.com/freqtrade/freqtrade/blob/develop/docs/bot-optimization.md
@@ -35,12 +35,6 @@ class TEMA_BB_RSI_Strategy01(IStrategy):
 
     # Minimal ROI designed for the strategy.
     # This attribute will be overridden if the config file contains "minimal_roi".
-  #   minimal_roi = {
-  #       "0": 0.21035,
-  #       "22": 0.08091,
-  #       "78": 0.01188,
-  #       "180": 0
-  # }
     minimal_roi = {
         "0": 1.09767,
         "3178": 0.31206,
@@ -70,7 +64,7 @@ class TEMA_BB_RSI_Strategy01(IStrategy):
     ignore_roi_if_buy_signal = False
 
     # Number of candles the strategy requires before producing valid signals
-    startup_candle_count: int = 20
+    # startup_candle_count: int = 10
 
     # Optional order type mapping.
     order_types = {
@@ -85,24 +79,18 @@ class TEMA_BB_RSI_Strategy01(IStrategy):
         'buy': 'gtc',
         'sell': 'gtc'
     }
-    
+
     plot_config = {
         # Main plot indicators (Moving averages, ...)
         'main_plot': {
-            'tema': {},
-            'sar': {'color': 'white'},
-        },
-        'subplots': {
-            # Subplots - each dict defines one additional plot
-            "MACD": {
-                'macd': {'color': 'blue'},
-                'macdsignal': {'color': 'orange'},
-            },
-            "RSI": {
-                'rsi': {'color': 'red'},
-            }
+            'bb_lowerband2': {'color': 'red'},
+            'bb_lowerband1': {'color': 'green'},
+            'bb_middleband1': {'color': 'orange'},
+            'bb_upperband1': {'color': 'green'},
+            # 'ma': {'color': 'blue'}
         }
     }
+
     def informative_pairs(self):
         """
         Define additional, informative pair/interval combinations to be cached from the exchange.
@@ -127,28 +115,15 @@ class TEMA_BB_RSI_Strategy01(IStrategy):
         :param metadata: Additional information, like the currently traded pair
         :return: a Dataframe with all mandatory indicators for the strategies
         """
+        # dataframe[f'tema3'] = ta.TEMA(dataframe, timeperiod=3*24)
+        dataframe[f'tema9'] = ta.TEMA(dataframe, timeperiod=9*24)
 
-        # RSI
-        dataframe['rsi'] = ta.RSI(dataframe)
-
-        for std in range(1, 5):
+        for std in [1, 2]:
             # Bollinger bands
-            bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=3*24, stds=std)
+            bollinger = qtpylib.bollinger_bands(dataframe['close'], window=3*24, stds=std)
             dataframe[f'bb_lowerband{std}'] = bollinger['lower']
             dataframe[f'bb_middleband{std}'] = bollinger['mid']
             dataframe[f'bb_upperband{std}'] = bollinger['upper']
-
-        # TEMA - Triple Exponential Moving Average
-        dataframe[f'tema'] = ta.TEMA(dataframe, timeperiod=9)
-
-        """
-        # first check if dataprovider is available
-        if self.dp:
-            if self.dp.runmode in ('live', 'dry_run'):
-                ob = self.dp.orderbook(metadata['pair'], 1)
-                dataframe['best_bid'] = ob['bids'][0][0]
-                dataframe['best_ask'] = ob['asks'][0][0]
-        """
 
         return dataframe
 
@@ -161,13 +136,11 @@ class TEMA_BB_RSI_Strategy01(IStrategy):
         """
         dataframe.loc[
             (
-                # (qtpylib.crossed_above(dataframe['rsi'], 25)) &  # Signal: RSI crosses above 30
-                # (dataframe['rsi'] < 35) &  # Signal: RSI crosses above 30
-                (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband2'])) &
-                # (dataframe['close'] <= dataframe['bb_lowerband2']) &  # Guard: tema below BB middle
-                # (dataframe['tema'] <= dataframe['bb_lowerband2']) &  # Guard: tema below BB middle
-                # (dataframe['tema'] > dataframe['tema'].shift(1)) &  # Guard: tema is raising
-                (dataframe['volume'] > 0)  # Make sure Volume is not 0
+                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1']))
+                (dataframe['close'] < dataframe['bb_lowerband1']) #&
+                # (dataframe['tema9'] < dataframe['bb_middleband1'])
+                # (dataframe['close'] > dataframe['bb_lowerband2'])
+                # (dataframe['volume'] > self.config['stake_amount'])
             ),
             'buy'] = 1
 
@@ -182,11 +155,11 @@ class TEMA_BB_RSI_Strategy01(IStrategy):
         """
         dataframe.loc[
             (
-                # (qtpylib.crossed_above(dataframe['rsi'], 84)) &  # Signal: RSI crosses above 70
-                # (dataframe['close'] > dataframe['bb_middleband2']) &  # Guard: tema above BB middle
-                (dataframe['close'] > dataframe['bb_upperband1']) &  # Guard: tema above BB middle
-                # (dataframe['tema'] < dataframe['tema'].shift(1)) &  # Guard: tema is falling
-                (dataframe['volume'] > 0)  # Make sure Volume is not 0
+                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_upperband1']))
+                (dataframe['close'] > dataframe['bb_upperband1'])
+                # (dataframe['close'] < dataframe['bb_lowerband1.5'])
+                # (dataframe['volume'] > self.config['stake_amount'])
             ),
             'sell'] = 1
+
         return dataframe
