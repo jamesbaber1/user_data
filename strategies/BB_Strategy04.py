@@ -44,7 +44,7 @@ class BB_Strategy04(IStrategy):
 
     # Optimal stoploss designed for the strategy.
     # This attribute will be overridden if the config file contains "stoploss".
-    stoploss = -0.07
+    stoploss = -0.06
 
     # Trailing stoploss
     trailing_stop = False
@@ -138,7 +138,7 @@ class BB_Strategy04(IStrategy):
             (
                 # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1']))
                 (dataframe['close'] < dataframe['bb_lowerband1']) &
-                (dataframe['close'] > dataframe['bb_lowerband2'])
+                (dataframe['close'] > dataframe['bb_lowerband1']*(1 + self.stoploss))
 
                 # (dataframe['volume'] > self.config['stake_amount'])
             ),
