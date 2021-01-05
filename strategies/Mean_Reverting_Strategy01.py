@@ -36,15 +36,15 @@ class Mean_Reverting_Strategy01(IStrategy):
     # Minimal ROI designed for the strategy.
     # This attribute will be overridden if the config file contains "minimal_roi".
     minimal_roi = {
-        "0": 1.09767,
-        "5": 0.31206,
-        "1000": 0.05282,
-        "4000": 0
+        "0": 0.26485,
+        "125": 0.17469,
+        "486": 0.08182,
+        "1833": 0
     }
 
     # Optimal stoploss designed for the strategy.
     # This attribute will be overridden if the config file contains "stoploss".
-    stoploss = -0.065
+    stoploss = -0.05567
 
     # Trailing stoploss
     trailing_stop = False
