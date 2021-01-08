@@ -40,16 +40,15 @@
             "rateLimit": 200
         },
         "pair_whitelist": [
-             "BNBUP/USDT",
-             "BNBDOWN/USDT",
-             "TRXUP/USDT",
-             "TRXDOWN/USDT",
-             "XRPUP/USDT",
-             "XRPDOWN/USDT",
-             "DOTUP/USDT",
-             "DOTDOWN/USDT",
-             "LTCUP/USDT",
-             "LTCDOWN/USDT"
+             "BTCUP/USDT",
+             "BTCDOWN/USDT",
+             "UNIUP/USDT",
+             "UNIDOWN/USDT",
+             "FILUP/USDT",
+             "FILDOWN/USDT",
+             "YFIUP/USDT",
+             "YFIDOWN/USDT"
+
         ],
         "pair_blacklist": [
             "BNB/USDT"
