@@ -42,13 +42,14 @@
         "pair_whitelist": [
              "BTCUP/USDT",
              "BTCDOWN/USDT",
-             "UNIUP/USDT",
-             "UNIDOWN/USDT",
+             "TRXUP/USDT",
+             "TRXDOWN/USDT",
+             "SXPUP/USDT",
+             "SXPDOWN/USDT",
              "FILUP/USDT",
              "FILDOWN/USDT",
              "YFIUP/USDT",
              "YFIDOWN/USDT"
-
         ],
         "pair_blacklist": [
             "BNB/USDT"

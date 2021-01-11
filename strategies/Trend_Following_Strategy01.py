@@ -35,11 +35,19 @@ class Trend_Following_Strategy01(IStrategy):
 
     # Minimal ROI designed for the strategy.
     # This attribute will be overridden if the config file contains "minimal_roi".
+    # minimal_roi = {
+    #     "0": 1.09767,
+    #     "3178": 0.31206,
+    #     "13523": 0.05282,
+    #     "38158": 0
+    # }
+
     minimal_roi = {
-        "0": 1.09767,
-        "3178": 0.31206,
-        "13523": 0.05282,
-        "38158": 0
+        "0": 1.5,
+        # "2880": 1.0,
+        # "5760": 0.8,
+        # "13523": 0.05282,
+        # "38158": 0
     }
 
     # Optimal stoploss designed for the strategy.
@@ -117,11 +125,11 @@ class Trend_Following_Strategy01(IStrategy):
         # RSI
         dataframe['rsi'] = ta.RSI(dataframe)
 
-        dataframe['sma'] = ta.SMA(dataframe, timeperiod=3*24, price='close')
+        dataframe['sma'] = ta.SMA(dataframe, timeperiod=36, price='close')
 
         for std in [1, 2]:
             # Bollinger bands
-            bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20*24, stds=std)
+            bollinger = qtpylib.bollinger_bands(dataframe['close'], window=10*24, stds=std)
             dataframe[f'bb_lowerband{std}'] = bollinger['lower']
             dataframe[f'bb_middleband{std}'] = bollinger['mid']
             dataframe[f'bb_upperband{std}'] = bollinger['upper']
@@ -137,11 +145,11 @@ class Trend_Following_Strategy01(IStrategy):
         """
         dataframe.loc[
             (
-                # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1']))
-                (dataframe['close'] < dataframe['bb_upperband2']) &
-                (dataframe['close'] > dataframe['bb_middleband1']) &
-                (dataframe['sma'] > dataframe['bb_upperband1']) &
-                (dataframe['close'] > dataframe['bb_middleband1']*(1 + self.stoploss))
+                (qtpylib.crossed_above(dataframe['sma'], dataframe['bb_upperband1'])) &
+                # (dataframe['close'] < dataframe['bb_upperband2']) &
+                # (dataframe['close'] > dataframe['bb_middleband1']) &
+                # (dataframe['sma'] > dataframe['bb_upperband1']) &
+                (dataframe['close'] > dataframe['bb_upperband1']*(1 + self.stoploss))
 
                 # (dataframe['volume'] > self.config['stake_amount'])
             ),
@@ -158,7 +166,8 @@ class Trend_Following_Strategy01(IStrategy):
         """
         dataframe.loc[
             (
-                (dataframe['sma'] < dataframe['bb_upperband1'])
+                (dataframe['sma'] < dataframe['bb_upperband1']) |
+                (dataframe['rsi'] > 85)
             ),
             'sell'] = 1
 
