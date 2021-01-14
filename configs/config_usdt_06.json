@@ -42,8 +42,6 @@
         "pair_whitelist": [
              "LINKUP/USDT",
              "LINKDOWN/USDT",
-             "BNBUP/USDT",
-             "BNBDOWN/USDT",
              "XTZUP/USDT",
              "XTZDOWN/USDT",
              "EOSUP/USDT",
@@ -54,8 +52,6 @@
              "DOTDOWN/USDT",
              "LTCUP/USDT",
              "LTCDOWN/USDT",
-             "SXPUP/USDT",
-             "SXPDOWN/USDT",
              "XLMUP/USDT",
              "XLMDOWN/USDT"
         ],
