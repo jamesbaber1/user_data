@@ -36,15 +36,15 @@ class Mean_Reverting_Strategy01(IStrategy):
     # Minimal ROI designed for the strategy.
     # This attribute will be overridden if the config file contains "minimal_roi".
     minimal_roi = {
-        "0": 0.26485,
-        "125": 0.17469,
-        "486": 0.08182,
-        "1833": 0
+        "0": 0.36117,
+        "480": 0.11992,
+        "1148": 0.04792,
+        "2083": 0
     }
 
     # Optimal stoploss designed for the strategy.
     # This attribute will be overridden if the config file contains "stoploss".
-    stoploss = -0.05567
+    stoploss = -0.05593
 
     # Trailing stoploss
     trailing_stop = False
@@ -121,7 +121,7 @@ class Mean_Reverting_Strategy01(IStrategy):
 
         for std in [1, 2]:
             # Bollinger bands
-            bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=std)
+            bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20*24, stds=std)
             dataframe[f'bb_lowerband{std}'] = bollinger['lower']
             dataframe[f'bb_middleband{std}'] = bollinger['mid']
             dataframe[f'bb_upperband{std}'] = bollinger['upper']
@@ -138,7 +138,7 @@ class Mean_Reverting_Strategy01(IStrategy):
         dataframe.loc[
             (
                 # (qtpylib.crossed_above(dataframe['close'], dataframe['bb_lowerband1']))
-                (dataframe['close'] < dataframe['bb_lowerband1']) &
+                (dataframe['rsi'] < 44) &
                 (dataframe['sma'] < dataframe['bb_lowerband1']) &
                 (dataframe['close'] > dataframe['bb_lowerband1']*(1 + self.stoploss))
 
