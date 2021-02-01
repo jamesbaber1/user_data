@@ -1,7 +1,7 @@
 {
-    "max_open_trades": 5,
+    "max_open_trades": 2,
     "stake_currency": "USDT",
-    "stake_amount": 1000,
+    "stake_amount": 2500,
     "tradable_balance_ratio": 0.99,
     "fiat_display_currency": "USD",
     "dry_run": true,
@@ -40,12 +40,8 @@
             "rateLimit": 200
         },
         "pair_whitelist": [
-             "BTCUP/USDT",
-             "BTCDOWN/USDT",
              "ETHUP/USDT",
              "ETHDOWN/USDT",
-             "LINKUP/USDT",
-             "LINKDOWN/USDT",
              "BNBUP/USDT",
              "BNBDOWN/USDT",
              "EOSUP/USDT",
@@ -59,11 +55,7 @@
              "UNIUP/USDT",
              "UNIDOWN/USDT",
              "YFIUP/USDT",
-             "YFIDOWN/USDT",
-             "AAVEUP/USDT",
-             "AAVEDOWN/USDT",
-             "SUSHIUP/USDT",
-             "SUSHIDOWN/USDT"
+             "YFIDOWN/USDT"
         ],
         "pair_blacklist": [
             "BNB/USDT"

@@ -154,10 +154,10 @@ class MACD_Strategy01(IStrategy):
         """
         dataframe.loc[
             (
-                    (dataframe['rsi'] < 30) &  # Signal: RSI crosses above 30
+                    (dataframe['rsi'] < 31.5) &  # Signal: RSI crosses above 30
                     (dataframe['macd'] > dataframe['macdsignal']) &
                     (dataframe['close'] < dataframe['bb_lowerband1']) &
-                    # (dataframe['close'] > dataframe['bb_lowerband1'] * (1 + self.stoploss)) &
+                    (dataframe['close'] > dataframe['bb_lowerband1'] * (1 + self.stoploss)) &
                     (dataframe['volume'] > 0)  # Make sure Volume is not 0
             ),
             'buy'] = 1
