@@ -37,10 +37,10 @@ class MACD_Strategy01(IStrategy):
     # Minimal ROI designed for the strategy.
     # This attribute will be overridden if the config file contains "minimal_roi".
     minimal_roi = {
-        "0": 0.3868547336957419,
-        "225": 0.23351438637643218,
-        "397": 0.08540221077778475,
-        "1662": 0
+        "0": 0.3312813912490128,
+        "360": 0.12575248965680347,
+        "986": 0.0850568200021629,
+        "1636": 0
     }
 
     # Optimal stoploss designed for the strategy.
