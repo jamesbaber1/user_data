@@ -45,7 +45,7 @@ class MACD_Strategy01(IStrategy):
 
     # Optimal stoploss designed for the strategy.
     # This attribute will be overridden if the config file contains "stoploss".
-    stoploss = -0.13960227241173587
+    stoploss = -0.24045906503859296
 
     # Trailing stoploss
     trailing_stop = False
